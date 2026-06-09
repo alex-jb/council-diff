@@ -99,9 +99,37 @@ interface CouncilResult {
 - [Orallexa 多 agent 辩论](https://github.com/alex-jb/orallexa-ai-trading-agent)
 - Cohere Command A+ 引用 pattern (来源以 `[src:...]` 形式内嵌)
 
+## Brier 审核 (v0.2 新增)
+
+```ts
+import { addPrediction, resolvePrediction, brierScore, meanBrier } from "council-diff/brier";
+
+// 决策时记录:
+const pred = addPrediction({
+  decision: result.decision,
+  domain: result.domain,
+  recommendation: result.recommendation,
+  agreement_score: result.agreement_score,
+  voice_scores: result.voices.map((v) => v.score),
+  resolve_by: "2027-06-09",  // 12 个月后审核
+});
+// 持久化到 JSONL / SQLite / Postgres 任你选。
+
+// 结果出来后:
+const resolved = resolvePrediction(pred, { outcome: "go-was-right" });
+const score = brierScore(resolved);  // 0=完美, 1=最差, 0.25=随机
+
+// 多个 prediction 聚合:
+const audit = meanBrier(allResolvedPreds);
+console.log(audit.edge_vs_random);  // 正数 = council 比随机有校准价值
+```
+
+详见 `src/brier.ts`。
+
 ## 路线图
 
-- [ ] 结果 Brier 审核——跟踪 recommendation 准确率,公开榜单
+- [x] Brier 审核数学 (v0.2)
+- [ ] 公开 Brier 榜单 council.alex-jb.com
 - [ ] 按 voice 流式输出供 UI
 - [ ] Python 移植 (`pip install council-diff`)
 - [ ] CLI: `council "我该不该辞职" --domain career`

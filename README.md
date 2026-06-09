@@ -99,9 +99,37 @@ One Claude Sonnet 4.6 call per deliberation. ~$0.02-0.04 per call depending on c
 - [Orallexa multi-agent debate](https://github.com/alex-jb/orallexa-ai-trading-agent)
 - Cohere Command A+ grounding citation pattern (sources cited inline as `[src:...]`)
 
+## Brier audit (new in v0.2)
+
+```ts
+import { addPrediction, resolvePrediction, brierScore, meanBrier } from "council-diff/brier";
+
+// At deliberation time:
+const pred = addPrediction({
+  decision: result.decision,
+  domain: result.domain,
+  recommendation: result.recommendation,
+  agreement_score: result.agreement_score,
+  voice_scores: result.voices.map((v) => v.score),
+  resolve_by: "2027-06-09",  // 12mo from now
+});
+// Persist `pred` to your storage of choice (JSONL, SQLite, Postgres).
+
+// At resolution time (when the outcome is known):
+const resolved = resolvePrediction(pred, { outcome: "go-was-right" });
+const score = brierScore(resolved);  // 0 = perfect, 1 = max wrong, 0.25 = random
+
+// Aggregate over many resolutions:
+const audit = meanBrier(allResolvedPreds);
+console.log(audit.edge_vs_random);  // positive = council adds calibration value
+```
+
+See `src/brier.ts` for `predictedProbability` math + persistence-agnostic interface.
+
 ## Roadmap
 
-- [ ] Brier audit at resolution — track recommendation accuracy over time, publish public leaderboard
+- [x] Brier audit math (v0.2)
+- [ ] Public Brier leaderboard at council.alex-jb.com
 - [ ] Streaming voice-by-voice output for UI
 - [ ] Python port (`pip install council-diff`)
 - [ ] CLI: `council "should I quit my job" --domain career`
