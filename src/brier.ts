@@ -50,6 +50,11 @@ export interface Prediction {
   outcome?: Outcome;           // filled at resolution time
   resolved_at?: string;        // ISO timestamp of resolution
   notes?: string;
+  // Oracle layer (v0.3.0+) — set when CouncilResult.oracle was present.
+  // Scored separately so we can audit Oracle independent of the council.
+  oracle_recommendation?: Recommendation;
+  oracle_score?: number;       // 0-100 — Oracle's own confidence
+  oracle_model?: string;       // e.g. "claude-fable-5"
 }
 
 export interface PredictionInput {
@@ -60,6 +65,9 @@ export interface PredictionInput {
   voice_scores: number[];
   resolve_by?: string;
   notes?: string;
+  oracle_recommendation?: Recommendation;
+  oracle_score?: number;
+  oracle_model?: string;
 }
 
 export function addPrediction(input: PredictionInput): Prediction {
@@ -155,6 +163,94 @@ export function brierByDomain(preds: Prediction[]): Record<string, ReturnType<ty
     out[domain] = meanBrier(ps);
   }
   return out;
+}
+
+/**
+ * Brier score for the Oracle layer of a resolved prediction.
+ *
+ * Same probability map as the council, but driven by `oracle_recommendation`
+ * and `oracle_score` instead of recommendation + agreement_score. The Oracle's
+ * own self-reported confidence (0-100) plays the role agreement_score plays
+ * for the council — high confidence nudges toward the recommendation's base
+ * probability, low confidence pulls toward 0.5.
+ *
+ * Returns null if there's no Oracle data on this prediction OR if the
+ * prediction isn't resolved yet OR if the outcome is "unresolvable".
+ */
+export function oracleBrierScore(pred: Prediction): number | null {
+  if (!pred.oracle_recommendation) return null;
+  const actual = actualOutcome(pred);
+  if (actual === null) return null;
+  const base = {
+    go: 0.8,
+    wait: 0.5,
+    kill: 0.2,
+    split: 0.5,
+  }[pred.oracle_recommendation];
+  const conf = Math.max(0, Math.min(100, pred.oracle_score ?? 50)) / 100;
+  const p = 0.5 + (base - 0.5) * conf;
+  const clamped = Math.max(0.01, Math.min(0.99, p));
+  return (clamped - actual) ** 2;
+}
+
+/**
+ * Oracle-vs-council comparison over a set of resolved predictions.
+ *
+ * Honest answer to "is paying $0.10 for Oracle worth it over $0.03 council alone?"
+ * Lower Brier = better calibrated. `delta = oracle_mean - council_mean`:
+ *   - delta < 0 → Oracle BEATS council (worth the extra cost)
+ *   - delta = 0 → tie
+ *   - delta > 0 → Oracle UNDERPERFORMS council (don't pay for Oracle)
+ *
+ * Counts:
+ *   - oracle_overrides: predictions where Oracle and council disagreed
+ *   - oracle_override_wins: of those, how often Oracle's call beat council's
+ *
+ * Returns null if no resolved predictions have Oracle data.
+ */
+export function oracleVsCouncil(preds: Prediction[]): {
+  n: number;
+  council_mean_brier: number;
+  oracle_mean_brier: number;
+  delta: number;                  // negative = Oracle wins
+  oracle_overrides: number;       // count of disagreements
+  oracle_override_wins: number;   // of disagreements, how often Oracle was right
+} | null {
+  const withOracle = preds.filter(
+    (p) => p.oracle_recommendation && actualOutcome(p) !== null,
+  );
+  if (withOracle.length === 0) return null;
+
+  const councilScores: number[] = [];
+  const oracleScores: number[] = [];
+  let overrides = 0;
+  let overrideWins = 0;
+
+  for (const p of withOracle) {
+    const c = brierScore(p);
+    const o = oracleBrierScore(p);
+    if (c === null || o === null) continue;
+    councilScores.push(c);
+    oracleScores.push(o);
+    if (p.oracle_recommendation !== p.recommendation) {
+      overrides++;
+      // Oracle wins the override when its Brier is lower than council's
+      if (o < c) overrideWins++;
+    }
+  }
+
+  if (councilScores.length === 0) return null;
+
+  const cMean = councilScores.reduce((s, v) => s + v, 0) / councilScores.length;
+  const oMean = oracleScores.reduce((s, v) => s + v, 0) / oracleScores.length;
+  return {
+    n: councilScores.length,
+    council_mean_brier: cMean,
+    oracle_mean_brier: oMean,
+    delta: oMean - cMean,
+    oracle_overrides: overrides,
+    oracle_override_wins: overrideWins,
+  };
 }
 
 /**
