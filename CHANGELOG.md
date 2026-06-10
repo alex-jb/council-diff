@@ -8,6 +8,22 @@ All notable changes to council-diff. Versioning follows semver.
 - Streaming voice-by-voice output (planned)
 - Python port parity tracking (see [council-diff-py](https://github.com/alex-jb/council-diff-py))
 
+## [0.3.0] — 2026-06-10
+
+### Added
+- **Fable 5 Oracle mode** (`oracle: "fable-5"` on `DeliberateInput`). After the 5-voice council deliberates, [Claude Fable 5](https://www.anthropic.com/news/claude-fable-5) reads every verdict + the consensus and issues a single adjudication with override authority. Returned on `CouncilResult.oracle` with model, recommendation, score, verdict, and optional `override_reason` (set only when Oracle disagrees with the council).
+- `OracleVerdict` interface exported from `src/index.ts`.
+- `examples/oracle.ts` — runnable Fable 5 Oracle demo on a hosted-SaaS-vs-OSS decision. `npm run example:oracle`.
+- `launch/14-fable-5-wave-borrow.md` — 24h wave-borrow launch kit (X thread, HN comment, Reddit r/ClaudeAI, LinkedIn).
+- Keywords added to package.json: `claude-fable-5`, `fable-5`, `oracle`, `brier`.
+
+### Why
+Anthropic shipped Claude Fable 5 (Mythos-class flagship, 95% SWE-Bench, 1M context, $10/$50 per MTok) on 2026-06-10. A single-LLM answer hides its own uncertainty; a 5-voice council exposes the disagreement; a flagship adjudicator picks which side actually holds up. Council + Oracle runs both layers, Brier-audits both separately, and surfaces when Oracle wins vs underperforms the council — instead of taking either's word for it.
+
+### Cost
+- Council only: ~$0.03/call (Sonnet 4.6)
+- Council + Fable 5 Oracle: ~$0.10/call total
+
 ## [0.2.0] — 2026-06-09
 
 ### Added

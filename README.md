@@ -4,6 +4,8 @@
 
 **5-voice AI council for any decision.** Paste a question, get 5 specialist perspectives in parallel, see where they agree and disagree. Brier-audited at resolution.
 
+> **NEW in v0.3.0 (2026-06-10): Fable 5 Oracle mode** — pass `oracle: "fable-5"` and after the 5 voices deliberate, [Claude Fable 5](https://www.anthropic.com/news/claude-fable-5) (Mythos-class flagship, 95% SWE-Bench, 1M context) reads every verdict and issues a single adjudication, with authority to override the council. Council finds the disagreement. Oracle picks the side that holds up. Brier-audited separately at resolution so we can see when Oracle beats vs underperforms the council.
+
 Built on the pattern from Perplexity's Model Council UI + the multi-agent debate stack used in [Orallexa](https://github.com/alex-jb/orallexa-ai-trading-agent) for trading research.
 
 ## Why
@@ -51,6 +53,30 @@ for (const v of result.voices) {
 }
 ```
 
+## Oracle mode (Fable 5)
+
+For hard calls — split councils, high-cost decisions, or anywhere you want a flagship-tier second opinion — opt into Oracle:
+
+```ts
+const result = await council.deliberate({
+  domain: "founder",
+  decision: "Ship hosted SaaS at $29/mo or stay OSS-only?",
+  context: "11-agent OSS stack, ~50 stars, 3 paying customers begging for managed",
+  oracle: "fable-5",  // opt-in
+});
+
+console.log(result.recommendation);          // council vote
+console.log(result.oracle?.recommendation);  // Fable 5's vote
+console.log(result.oracle?.verdict);         // 2-3 sentences naming which voices it sided with
+console.log(result.oracle?.override_reason); // only set if Oracle disagrees with the council
+```
+
+Council deliberates first (Sonnet 4.6, 5 voices, ~$0.03). Then Fable 5 reads all 5 verdicts and the consensus, weighs them with the full Mythos-class reasoning budget, and either ratifies the council or overrides with reason. Adds ~$0.05-0.08 per call.
+
+Use it when the decision matters enough that paying for a second model with override authority is rational. Skip it for routine deliberations.
+
+Try it: `ANTHROPIC_API_KEY=... npm run example:oracle`
+
 ## Custom voices
 
 ```ts
@@ -86,12 +112,20 @@ interface CouncilResult {
   agreement_score: number;      // 0-1 — 1 = unanimous, 0 = split
   recommendation: "go" | "wait" | "kill" | "split";
   computed_at: string;          // ISO timestamp
+  oracle?: {                    // present only when oracle: "fable-5" was passed
+    model: string;              // e.g. "claude-fable-5"
+    recommendation: "go" | "wait" | "kill" | "split";
+    score: number;              // 0-100
+    verdict: string;            // 2-3 sentences
+    override_reason?: string;   // set when Oracle disagrees with council consensus
+  };
 }
 ```
 
 ## Cost
 
-One Claude Sonnet 4.6 call per deliberation. ~$0.02-0.04 per call depending on context length.
+- **Council only:** one Claude Sonnet 4.6 call per deliberation. ~$0.02-0.04 per call depending on context length.
+- **Council + Oracle (`oracle: "fable-5"`):** add one Claude Fable 5 call. ~$0.05-0.08 extra. Total ~$0.07-0.12 per Oracle deliberation.
 
 ## Pattern source
 

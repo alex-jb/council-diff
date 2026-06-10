@@ -1,7 +1,7 @@
 {
   "name": "council-diff",
-  "version": "0.1.0",
-  "description": "5-voice AI council for any decision. Paste a question, get 5 specialist perspectives in parallel, see where they agree and disagree. Brier-audited at resolution.",
+  "version": "0.3.0",
+  "description": "5-voice AI council for any decision, with optional Claude Fable 5 Oracle adjudication. Paste a question, get 5 specialist perspectives in parallel, see where they agree and disagree. Brier-audited at resolution.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -9,7 +9,8 @@
   "scripts": {
     "build": "tsc",
     "test": "node --test --import tsx examples/test.ts",
-    "example": "tsx examples/founder.ts"
+    "example": "tsx examples/founder.ts",
+    "example:oracle": "tsx examples/oracle.ts"
   },
   "repository": {
     "type": "git",
@@ -18,11 +19,15 @@
   "keywords": [
     "ai",
     "claude",
+    "claude-fable-5",
+    "fable-5",
     "anthropic",
     "agents",
     "decision",
     "council",
-    "multi-agent"
+    "multi-agent",
+    "oracle",
+    "brier"
   ],
   "author": "Alex Xiaoyu Ji",
   "license": "MIT",

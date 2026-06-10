@@ -4,6 +4,8 @@
 
 **5 个声音 AI 议会**——任何决策粘进来,5 个专家视角并行评估,看他们哪里同意、哪里分歧。在结果出来后做 Brier 审核。
 
+> **v0.3.0 新功能 (2026-06-10): Fable 5 Oracle 模式** — 传 `oracle: "fable-5"`,5 个声音辩论完之后,[Claude Fable 5](https://www.anthropic.com/news/claude-fable-5) (Anthropic 旗舰 Mythos 级,SWE-Bench 95%,1M context) 会读完所有 5 个判决再下一道仲裁,有权推翻议会共识。议会负责找分歧,Oracle 负责挑站得住的那一边。Brier 单独 audit,这样能看到 Oracle 什么时候赢议会、什么时候输给议会。
+
 Pattern 来源: Perplexity Model Council UI + [Orallexa](https://github.com/alex-jb/orallexa-ai-trading-agent) 量化交易里的 multi-agent debate stack。
 
 ## 为什么
