@@ -60,7 +60,7 @@ MIT, npm, no SaaS, no telemetry. Bring your own ANTHROPIC_API_KEY.
 
 If you're already paying for Fable 5 — this is the cheapest way to use it on real decisions, not just code completions.
 
-`npm install council-diff@0.2.0`
+`npm install council-diff@0.3.0`
 
 🔗 github.com/alex-jb/council-diff
 

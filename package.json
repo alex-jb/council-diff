@@ -1,6 +1,6 @@
 {
   "name": "council-diff",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "5-voice AI council for any decision, with optional Claude Fable 5 Oracle adjudication. Paste a question, get 5 specialist perspectives in parallel, see where they agree and disagree. Brier-audited at resolution.",
   "type": "module",
   "main": "dist/index.js",

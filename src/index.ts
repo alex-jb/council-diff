@@ -42,11 +42,22 @@ export interface CouncilVoice {
 }
 
 export interface OracleVerdict {
-  model: string;                // e.g. "claude-fable-5"
+  model: string;                // e.g. "claude-fable-5" or "claude-sonnet-4-6" if downgraded
   recommendation: "go" | "wait" | "kill" | "split";
   score: number;                // 0-100
   verdict: string;              // 2-3 sentences adjudicating the 5 voices
   override_reason?: string;     // set when Oracle disagrees with council consensus
+  /**
+   * Data retention disclosure (v0.3.1+).
+   *   "30day-mythos" — Anthropic Mythos-class models (Fable 5, Opus 4.7-Mythos)
+   *                    enforce 30-day server-side data retention per
+   *                    support.claude.com/en/articles/15425996
+   *   "zero"         — Sonnet 4.6 / Haiku 4.5 standard enterprise terms,
+   *                    no server-side retention beyond the request itself
+   */
+  data_retention: "30day-mythos" | "zero";
+  /** True if the caller asked for Fable 5 but safeMode forced downgrade to Sonnet. */
+  downgraded?: boolean;
 }
 
 export interface CouncilResult {
@@ -158,17 +169,40 @@ const DOMAIN_VOICES: Record<CouncilDomain, { slug: string; display: string; role
 export interface CouncilOptions {
   apiKey?: string;
   model?: string;
+  /**
+   * Privacy guard (v0.3.1+). When true, any `oracle: "fable-5"` request
+   * silently downgrades to `claude-sonnet-4-6` to avoid the Mythos-class
+   * 30-day data retention policy. The returned `oracle.downgraded` field
+   * is set so the caller can see what actually ran.
+   *
+   * Default: false (no downgrade). Set to true if your application has
+   * any privacy claim that conflicts with 30-day retention (e.g. mental-
+   * health journals, on-device-only marketing, GDPR-sensitive PII).
+   */
+  safeMode?: boolean;
 }
+
+/**
+ * Mythos-class models that carry Anthropic's 30-day data retention policy.
+ * Centralized so it stays in sync with the official Anthropic announcement.
+ * Source: support.claude.com/en/articles/15425996
+ */
+const MYTHOS_MODELS = new Set<string>([
+  "claude-fable-5",
+  "claude-opus-4-7-mythos",
+]);
 
 export class CouncilDiff {
   private client: Anthropic;
   private model: string;
+  private safeMode: boolean;
 
   constructor(opts: CouncilOptions = {}) {
     const key = opts.apiKey ?? process.env.ANTHROPIC_API_KEY;
     if (!key) throw new Error("ANTHROPIC_API_KEY not set");
     this.client = new Anthropic({ apiKey: key });
     this.model = opts.model ?? "claude-sonnet-4-6";
+    this.safeMode = opts.safeMode ?? false;
   }
 
   async deliberate(input: DeliberateInput): Promise<CouncilResult> {
@@ -259,8 +293,14 @@ Schema:
     input: DeliberateInput,
     council: CouncilResult,
   ): Promise<OracleVerdict> {
-    const oracleModel =
+    const requested =
       input.oracle === "fable-5" ? "claude-fable-5" : (input.oracle as string);
+
+    // safeMode (v0.3.1+) — silently downgrade any Mythos-class request to
+    // Sonnet 4.6. Application code that calls Oracle for sensitive decisions
+    // (mental-health, on-device-only marketing, PII) opts in to this.
+    const downgraded = this.safeMode && MYTHOS_MODELS.has(requested);
+    const oracleModel = downgraded ? "claude-sonnet-4-6" : requested;
 
     const voicesSummary = council.voices
       .map(
@@ -322,6 +362,8 @@ Adjudicate.`;
       score: parsed.score,
       verdict: parsed.verdict,
       override_reason: parsed.override_reason || undefined,
+      data_retention: MYTHOS_MODELS.has(oracleModel) ? "30day-mythos" : "zero",
+      downgraded: downgraded || undefined,
     };
   }
 }

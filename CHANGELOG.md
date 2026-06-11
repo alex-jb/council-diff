@@ -8,6 +8,28 @@ All notable changes to council-diff. Versioning follows semver.
 - Streaming voice-by-voice output (planned)
 - Python port parity tracking (see [council-diff-py](https://github.com/alex-jb/council-diff-py))
 
+## [0.3.1] — 2026-06-11
+
+### Added
+- **Data retention disclosure** on every Oracle response. `OracleVerdict.data_retention` is `"30day-mythos"` for Mythos-class models (Fable 5, Opus 4.7-Mythos per [Anthropic policy](https://support.claude.com/en/articles/15425996-data-retention-practices-for-mythos-class-models)) or `"zero"` for Sonnet 4.6 / Haiku 4.5.
+- **`safeMode: boolean` flag** on `CouncilOptions`. When `true`, any `oracle: "fable-5"` request silently downgrades to `claude-sonnet-4-6` to avoid the 30-day retention. Returned `OracleVerdict.downgraded: true` so the caller can tell what actually ran.
+- README + zh-CN README data retention sections with the full disclosure model.
+
+### Why now
+Shipping Oracle (v0.3.0) on 2026-06-10 surfaced an industry-wide gap: many indie applications quietly route through Mythos-class models without disclosing the 30-day retention. For council-diff, whose positioning is calibration honesty + Brier audit, the gap is contradictory. v0.3.1 closes it before any further Oracle-mode marketing.
+
+### Use cases that should set `safeMode: true`
+- Mental-health / journaling apps with "on-device" or "零上传" claims
+- Mainland China data-residency-sensitive products
+- GDPR-sensitive PII processing
+- Sealed M&A / legal deliberation
+- Any product where 30-day server-side retention is a contractual problem
+
+### Cost
+- Council only: ~$0.03/call (Sonnet 4.6, zero retention)
+- Council + Fable 5 Oracle: ~$0.10/call (30-day retention on the Oracle leg only)
+- Council + Oracle + `safeMode`: ~$0.06/call (Sonnet 4.6 throughout, zero retention)
+
 ## [0.3.0] — 2026-06-10
 
 ### Added

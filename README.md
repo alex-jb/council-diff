@@ -4,7 +4,9 @@
 
 **5-voice AI council for any decision.** Paste a question, get 5 specialist perspectives in parallel, see where they agree and disagree. Brier-audited at resolution.
 
-> **NEW in v0.3.0 (2026-06-10): Fable 5 Oracle mode** — pass `oracle: "fable-5"` and after the 5 voices deliberate, [Claude Fable 5](https://www.anthropic.com/news/claude-fable-5) (Mythos-class flagship, 95% SWE-Bench, 1M context) reads every verdict and issues a single adjudication, with authority to override the council. Council finds the disagreement. Oracle picks the side that holds up. Brier-audited separately at resolution so we can see when Oracle beats vs underperforms the council.
+> **v0.3.1 (2026-06-11) — Privacy disclosure** Oracle responses now include `data_retention: "30day-mythos" | "zero"`. Pass `safeMode: true` to silently downgrade any Mythos-class request to Sonnet 4.6 (zero retention). Apps with privacy claims (mental-health, on-device-only marketing, GDPR-sensitive PII) **should** opt in.
+>
+> **v0.3.0 (2026-06-10): Fable 5 Oracle mode** — pass `oracle: "fable-5"` and after the 5 voices deliberate, [Claude Fable 5](https://www.anthropic.com/news/claude-fable-5) (Mythos-class flagship, 95% SWE-Bench, 1M context) reads every verdict and issues a single adjudication, with authority to override the council. Council finds the disagreement. Oracle picks the side that holds up. Brier-audited separately at resolution so we can see when Oracle beats vs underperforms the council.
 
 Built on the pattern from Perplexity's Model Council UI + the multi-agent debate stack used in [Orallexa](https://github.com/alex-jb/orallexa-ai-trading-agent) for trading research.
 
@@ -76,6 +78,35 @@ Council deliberates first (Sonnet 4.6, 5 voices, ~$0.03). Then Fable 5 reads all
 Use it when the decision matters enough that paying for a second model with override authority is rational. Skip it for routine deliberations.
 
 Try it: `ANTHROPIC_API_KEY=... npm run example:oracle`
+
+### Data retention disclosure
+
+Anthropic enforces a **30-day server-side data retention policy on Mythos-class models** (Claude Fable 5, Opus 4.7-Mythos) per [their support article](https://support.claude.com/en/articles/15425996-data-retention-practices-for-mythos-class-models). The 5-voice base council uses Sonnet 4.6 which is **zero-retention** under standard enterprise terms.
+
+Every Oracle response in v0.3.1+ includes the actual posture:
+
+```ts
+result.oracle?.data_retention  // "30day-mythos" or "zero"
+result.oracle?.downgraded      // true if safeMode forced the downgrade
+```
+
+If your application has any privacy claim that conflicts with 30-day retention — mental-health journaling, "on-device 零上传" marketing copy, GDPR-sensitive PII, sealed business decisions — pass `safeMode: true` and Oracle silently downgrades to Sonnet 4.6:
+
+```ts
+const council = new CouncilDiff({ safeMode: true });
+
+const result = await council.deliberate({
+  domain: "founder",
+  decision: "...",
+  oracle: "fable-5",  // requested
+});
+
+result.oracle?.model         // "claude-sonnet-4-6" — actually ran
+result.oracle?.downgraded    // true
+result.oracle?.data_retention // "zero"
+```
+
+**This disclosure is not optional.** Council-diff's positioning is calibration honesty — shipping a Mythos route without surfacing the retention boundary undermines that.
 
 ## Custom voices
 
