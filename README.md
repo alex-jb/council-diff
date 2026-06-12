@@ -4,11 +4,17 @@
 
 **5-voice AI council for any decision.** Paste a question, get 5 specialist perspectives in parallel, see where they agree and disagree. Brier-audited at resolution.
 
+> **"Almost everything can be made verifiable to some extent — for writing, you can imagine having a council of LLM judges and getting something reasonable."** — Andrej Karpathy on agentic engineering, June 2026.
+>
+> council-diff is the smallest reproducible version of that pattern. v0.3.0 shipped 6 months before the public statement. MIT licensed, on npm.
+
 > **v0.3.1 (2026-06-11) — Privacy disclosure** Oracle responses now include `data_retention: "30day-mythos" | "zero"`. Pass `safeMode: true` to silently downgrade any Mythos-class request to Sonnet 4.6 (zero retention). Apps with privacy claims (mental-health, on-device-only marketing, GDPR-sensitive PII) **should** opt in.
 >
 > **v0.3.0 (2026-06-10): Fable 5 Oracle mode** — pass `oracle: "fable-5"` and after the 5 voices deliberate, [Claude Fable 5](https://www.anthropic.com/news/claude-fable-5) (Mythos-class flagship, 95% SWE-Bench, 1M context) reads every verdict and issues a single adjudication, with authority to override the council. Council finds the disagreement. Oracle picks the side that holds up. Brier-audited separately at resolution so we can see when Oracle beats vs underperforms the council.
 
 Built on the pattern from Perplexity's Model Council UI + the multi-agent debate stack used in [Orallexa](https://github.com/alex-jb/orallexa-ai-trading-agent) for trading research.
+
+**How is this different from Perplexity Model Council?** Perplexity's Model Council (Feb 2026) is a closed UI feature that compares the *same question* across *different providers* (GPT-5.2 vs Claude 4.6 vs Gemini side-by-side). council-diff is an OSS library that compares *different personas* (Garry / Naval / PG / Suster / Cuban) against *the same model*, with a Fable 5 Oracle adjudicating, and a Brier audit module that scores every voice over 30/90 days. Persona-of-the-judge instead of provider-of-the-judge. Closes the loop with reality.
 
 ## Why
 
@@ -28,7 +34,11 @@ Plus `custom` for fully user-defined voice rosters.
 ## Install
 
 ```bash
+# npm (TypeScript / Node)
 npm install council-diff
+
+# Vercel skills.sh (agent-agnostic — Claude Code / Codex / Cursor / OpenClaw)
+npx skills i alex-jb/council-diff
 ```
 
 ## Quickstart
