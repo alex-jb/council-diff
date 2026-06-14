@@ -8,6 +8,27 @@ All notable changes to council-diff. Versioning follows semver.
 - Streaming voice-by-voice output (planned)
 - Python port parity tracking (see [council-diff-py](https://github.com/alex-jb/council-diff-py))
 
+## [0.4.0] / 2026-06-14 / Karpathy Software 3.0 repositioning
+
+### Changed
+- **README hero rewritten** from "5-voice AI council OSS" to "Software 3.0 Reference Implementation: the OSS evaluation loop for multi-persona AI agents". Same library, sharper frame.
+- Hero quote block now leads with Karpathy, Sequoia AI Ascent, 2026-04-20:
+  - "Traditional software automates what you can specify. AI automates what you can verify."
+  - "Agentic engineers design specs, supervise plans, inspect diffs, write tests, create evaluation loops, manage permissions, isolate worktrees, and preserve quality."
+- New section "Why this is a Software 3.0 artifact" maps each council-diff primitive 1:1 to Karpathy's agentic engineering job description (specs / diffs / tests / **evaluation loops** / permissions / quality).
+- Brier audit section renamed "Brier audit: the evaluation loop" and elevated above the differentiation paragraph. The audit is now positioned as the load-bearing piece, not a footnote.
+- `package.json` description rewritten to lead with the Software 3.0 framing.
+- New keywords: `agentic-engineering`, `software-3.0`, `evaluation-loop`, `evals`, `karpathy`, `calibration`.
+- README.zh-CN mirrors all of the above in Chinese.
+
+### Why now
+Karpathy's Sequoia AI Ascent talk (2026-04-20) coined "Software 3.0 = prompting an LLM interpreter" and laid out the agentic engineering job description. council-diff's persona-vs-persona + Brier audit design IS literally a Karpathy evaluation loop. The library has not changed. The frame around it has. This release locks in the positioning before the Anthropic FDE / Sequoia press cycle that the framing will pull toward.
+
+### Not changed
+- No code changes. All tests still pass.
+- Fable 5 Oracle, safeMode, data retention disclosure all unchanged.
+- Install commands unchanged (`npm install council-diff`, `npx skills i alex-jb/council-diff`).
+
 ## [0.3.1] — 2026-06-11
 
 ### Added

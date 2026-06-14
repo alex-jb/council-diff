@@ -2,36 +2,53 @@
 
 > [English](README.md) · [中文](README.zh-CN.md)
 
-**5-voice AI council for any decision.** Paste a question, get 5 specialist perspectives in parallel, see where they agree and disagree. Brier-audited at resolution.
+### Software 3.0 Reference Implementation · The OSS evaluation loop for multi-persona AI agents
 
-> **"Almost everything can be made verifiable to some extent — for writing, you can imagine having a council of LLM judges and getting something reasonable."** — Andrej Karpathy on agentic engineering, June 2026.
->
-> council-diff is the smallest reproducible version of that pattern. v0.3.0 shipped 6 months before the public statement. MIT licensed, on npm.
+> **"Traditional software automates what you can specify. AI automates what you can verify."**
+> Andrej Karpathy, Sequoia AI Ascent, April 20, 2026
 
-> **v0.3.1 (2026-06-11) — Privacy disclosure** Oracle responses now include `data_retention: "30day-mythos" | "zero"`. Pass `safeMode: true` to silently downgrade any Mythos-class request to Sonnet 4.6 (zero retention). Apps with privacy claims (mental-health, on-device-only marketing, GDPR-sensitive PII) **should** opt in.
->
-> **v0.3.0 (2026-06-10): Fable 5 Oracle mode** — pass `oracle: "fable-5"` and after the 5 voices deliberate, [Claude Fable 5](https://www.anthropic.com/news/claude-fable-5) (Mythos-class flagship, 95% SWE-Bench, 1M context) reads every verdict and issues a single adjudication, with authority to override the council. Council finds the disagreement. Oracle picks the side that holds up. Brier-audited separately at resolution so we can see when Oracle beats vs underperforms the council.
+> **"Agentic engineers design specs, supervise plans, inspect diffs, write tests, create evaluation loops, manage permissions, isolate worktrees, and preserve quality."**
+> Karpathy, same talk
 
-Built on the pattern from Perplexity's Model Council UI + the multi-agent debate stack used in [Orallexa](https://github.com/alex-jb/orallexa-ai-trading-agent) for trading research.
+council-diff is the smallest reproducible **evaluation loop** for multi-persona agents. Paste a decision, get 5 persona verdicts in parallel, watch them disagree, optionally let a Fable 5 Oracle adjudicate, then Brier-audit every voice when the outcome resolves. v0.3.0 shipped 6 months before Anthropic's "advisor strategy" beta. MIT licensed, on npm.
 
-**How is this different from Perplexity Model Council?** Perplexity's Model Council (Feb 2026) is a closed UI feature that compares the *same question* across *different providers* (GPT-5.2 vs Claude 4.6 vs Gemini side-by-side). council-diff is an OSS library that compares *different personas* (Garry / Naval / PG / Suster / Cuban) against *the same model*, with a Fable 5 Oracle adjudicating, and a Brier audit module that scores every voice over 30/90 days. Persona-of-the-judge instead of provider-of-the-judge. Closes the loop with reality.
+## Why this is a Software 3.0 artifact
 
-**Anthropic shipped "advisor strategy" (beta) on 2026-06-09 — same pattern, 6 months later.** Anthropic's June 2026 Skills release added an "advisor strategy" mode where agents consult an advisor model before deciding. That's literally what council-diff has shipped since v0.3.0: the 5-voice council consults, the Fable 5 Oracle adjudicates, the Brier audit closes the loop. We were 6 months early on the pattern and the only OSS implementation that ships the calibration layer underneath. Pairs with the official Skills standard cleanly — drop `council-diff` into any `.claude/skills/` directory and it auto-loads.
+Karpathy's framing splits software history into three eras:
 
-## Why
+- **Software 1.0**: explicit code you write
+- **Software 2.0**: trained neural networks
+- **Software 3.0**: prompting an LLM interpreter
 
-Single-LLM verdicts hide their own uncertainty. A 90% confident answer from one model and disagreement among five specialists carry very different signals. Council-diff exposes the disagreement.
+Software 3.0 has no compiler error and no unit test that catches a hallucination. The job description shifts. The agentic engineer designs specs precise enough that ambiguity has nowhere to hide, then builds the **evaluation loop** that catches the model when it drifts.
 
-For 5 built-in domains:
+council-diff maps onto that bullet directly:
 
-- **founder** — YC Partner / VC Skeptic / Lawyer / Indie CFO / Pragmatic Spouse
-- **engineer** — Rust Maintainer / SRE Oncall / Recruiter / Junior Dev / CTO 5y Later
-- **investor** — Macro / Sector / PM / Growth VC / Activist Short
-- **career** — Mentor 20y / Recruiter / Peer Doing Well / CSO / Future You 5y
-- **product** — Real User / Competitor / Internal Dev / Garry-style / Naval-style
-- **quant** — Jane Street MD / Citadel / Two Sigma ML / Anthropic / HFT Engineer
+| Karpathy's job description | council-diff primitive |
+|---|---|
+| Design specs so precise ambiguity has nowhere to hide | 5 persona briefs per domain, each with explicit bias declarations |
+| Inspect diffs | `voice.verdict` + `voice.strength` + `voice.gap` per persona, side by side |
+| Write tests | `agreement_score` is the test. 1.0 unanimous, 0.0 split |
+| **Create evaluation loops** | **Brier audit module. Every voice scored at resolution, calibration tracked over 30 / 90 days** |
+| Manage permissions | `safeMode: true` forces zero-retention Sonnet 4.6, surfaces `data_retention` per call |
+| Preserve quality | Oracle layer. Fable 5 reads all 5 verdicts and adjudicates, Brier-audited separately |
 
-Plus `custom` for fully user-defined voice rosters.
+The persona-vs-persona format is the spec. The agreement score is the test. The Brier audit is the evaluation loop. The Oracle is the supervisor. That is one OSS library, 5 verdicts per call, ~$0.03.
+
+## What it does
+
+Single-LLM verdicts hide their own uncertainty. A 90% confident answer from one model and 5 specialists who disagree carry very different signals. council-diff exposes the disagreement.
+
+For 6 built-in domains:
+
+- **founder**: YC Partner / VC Skeptic / Lawyer / Indie CFO / Pragmatic Spouse
+- **engineer**: Rust Maintainer / SRE Oncall / Recruiter / Junior Dev / CTO 5y Later
+- **investor**: Macro / Sector / PM / Growth VC / Activist Short
+- **career**: Mentor 20y / Recruiter / Peer Doing Well / CSO / Future You 5y
+- **product**: Real User / Competitor / Internal Dev / Garry-style / Naval-style
+- **quant**: Jane Street MD / Citadel / Two Sigma ML / Anthropic / HFT Engineer
+
+Plus `custom` for fully user-defined rosters.
 
 ## Install
 
@@ -39,7 +56,7 @@ Plus `custom` for fully user-defined voice rosters.
 # npm (TypeScript / Node)
 npm install council-diff
 
-# Vercel skills.sh (agent-agnostic — Claude Code / Codex / Cursor / OpenClaw)
+# Vercel skills.sh (agent-agnostic, works with Claude Code / Codex / Cursor / OpenClaw)
 npx skills i alex-jb/council-diff
 ```
 
@@ -57,7 +74,7 @@ const result = await council.deliberate({
 });
 
 console.log(result.recommendation);  // "go" | "wait" | "kill" | "split"
-console.log(result.agreement_score); // 0-1 — how much voices agree
+console.log(result.agreement_score); // 0-1, how much voices agree
 console.log(result.consensus);       // 1-paragraph synthesis
 
 for (const v of result.voices) {
@@ -69,7 +86,7 @@ for (const v of result.voices) {
 
 ## Oracle mode (Fable 5)
 
-For hard calls — split councils, high-cost decisions, or anywhere you want a flagship-tier second opinion — opt into Oracle:
+For hard calls, split councils, or anywhere you want a flagship-tier second opinion, opt into Oracle:
 
 ```ts
 const result = await council.deliberate({
@@ -93,7 +110,7 @@ Try it: `ANTHROPIC_API_KEY=... npm run example:oracle`
 
 ### Data retention disclosure
 
-Anthropic enforces a **30-day server-side data retention policy on Mythos-class models** (Claude Fable 5, Opus 4.7-Mythos) per [their support article](https://support.claude.com/en/articles/15425996-data-retention-practices-for-mythos-class-models). The 5-voice base council uses Sonnet 4.6 which is **zero-retention** under standard enterprise terms.
+Anthropic enforces a **30-day server-side data retention policy on Mythos-class models** (Claude Fable 5, Opus 4.7-Mythos) per [their support article](https://support.claude.com/en/articles/15425996-data-retention-practices-for-mythos-class-models). The 5-voice base council uses Sonnet 4.6, which is **zero-retention** under standard enterprise terms.
 
 Every Oracle response in v0.3.1+ includes the actual posture:
 
@@ -102,7 +119,7 @@ result.oracle?.data_retention  // "30day-mythos" or "zero"
 result.oracle?.downgraded      // true if safeMode forced the downgrade
 ```
 
-If your application has any privacy claim that conflicts with 30-day retention — mental-health journaling, "on-device 零上传" marketing copy, GDPR-sensitive PII, sealed business decisions — pass `safeMode: true` and Oracle silently downgrades to Sonnet 4.6:
+If your application has any privacy claim that conflicts with 30-day retention (mental-health journaling, "on-device 零上传" marketing copy, GDPR-sensitive PII, sealed business decisions), pass `safeMode: true` and Oracle silently downgrades to Sonnet 4.6:
 
 ```ts
 const council = new CouncilDiff({ safeMode: true });
@@ -113,12 +130,12 @@ const result = await council.deliberate({
   oracle: "fable-5",  // requested
 });
 
-result.oracle?.model         // "claude-sonnet-4-6" — actually ran
+result.oracle?.model         // "claude-sonnet-4-6", actually ran
 result.oracle?.downgraded    // true
 result.oracle?.data_retention // "zero"
 ```
 
-**This disclosure is not optional.** Council-diff's positioning is calibration honesty — shipping a Mythos route without surfacing the retention boundary undermines that.
+This disclosure is not optional. council-diff's positioning is calibration honesty. Shipping a Mythos route without surfacing the retention boundary undermines the whole point.
 
 ## Custom voices
 
@@ -131,7 +148,7 @@ const result = await council.deliberate({
     { slug: "dba", display: "Postgres DBA", role_brief: "Decades of OLTP. Bias: PG fits 95% of workloads." },
     { slug: "aws_se", display: "AWS Solutions Engineer", role_brief: "DynamoDB enthusiast. Bias: serverless > self-managed." },
     { slug: "kafka_dev", display: "Kafka Streams Dev", role_brief: "Event-sourcing lens. Bias: write log + project to either." },
-    { slug: "cost_eng", display: "Cost Engineer", role_brief: "Watches the bill. Bias: serverless costs 5× at scale." },
+    { slug: "cost_eng", display: "Cost Engineer", role_brief: "Watches the bill. Bias: serverless costs 5x at scale." },
     { slug: "former_cto", display: "Former CTO with 3 migrations", role_brief: "Has done both migrations. Bias: stay where the team is fluent." },
   ],
 });
@@ -152,7 +169,7 @@ interface CouncilResult {
     gap: string;            // biggest risk / counter
   }[];
   consensus: string;            // 1-paragraph synthesis (60-100 words)
-  agreement_score: number;      // 0-1 — 1 = unanimous, 0 = split
+  agreement_score: number;      // 0-1, 1 = unanimous, 0 = split
   recommendation: "go" | "wait" | "kill" | "split";
   computed_at: string;          // ISO timestamp
   oracle?: {                    // present only when oracle: "fable-5" was passed
@@ -161,6 +178,8 @@ interface CouncilResult {
     score: number;              // 0-100
     verdict: string;            // 2-3 sentences
     override_reason?: string;   // set when Oracle disagrees with council consensus
+    data_retention?: "30day-mythos" | "zero";
+    downgraded?: boolean;       // true if safeMode forced Sonnet 4.6
   };
 }
 ```
@@ -170,13 +189,9 @@ interface CouncilResult {
 - **Council only:** one Claude Sonnet 4.6 call per deliberation. ~$0.02-0.04 per call depending on context length.
 - **Council + Oracle (`oracle: "fable-5"`):** add one Claude Fable 5 call. ~$0.05-0.08 extra. Total ~$0.07-0.12 per Oracle deliberation.
 
-## Pattern source
+## Brier audit: the evaluation loop
 
-- [Perplexity Model Council UI](https://www.perplexity.ai/hub/blog/perplexity-model-council)
-- [Orallexa multi-agent debate](https://github.com/alex-jb/orallexa-ai-trading-agent)
-- Cohere Command A+ grounding citation pattern (sources cited inline as `[src:...]`)
-
-## Brier audit (new in v0.2)
+This is the part that makes council-diff a Software 3.0 artifact rather than a chat prompt wrapper. Every deliberation can be logged at decision time and scored at resolution time. The Brier score (0 perfect, 1 maximally wrong, 0.25 random coin-flip) tells you whether the council is calibrated or just opinionated.
 
 ```ts
 import { addPrediction, resolvePrediction, brierScore, meanBrier } from "council-diff/brier";
@@ -201,11 +216,27 @@ const audit = meanBrier(allResolvedPreds);
 console.log(audit.edge_vs_random);  // positive = council adds calibration value
 ```
 
-See `src/brier.ts` for `predictedProbability` math + persistence-agnostic interface.
+See `src/brier.ts` for `predictedProbability` math + persistence-agnostic interface. Oracle calls are Brier-audited separately so you can see when the Oracle beats the council and when it underperforms.
+
+## How this differs from existing tools
+
+**Perplexity Model Council (Feb 2026)** is a closed UI feature that compares the *same question* across *different providers* (GPT-5.2 vs Claude 4.6 vs Gemini side-by-side). council-diff is an OSS library that compares *different personas* against *the same model*, with a Fable 5 Oracle adjudicating, and a Brier audit module that scores every voice over 30 / 90 days. Persona-of-the-judge instead of provider-of-the-judge. Closes the loop with reality.
+
+**Anthropic shipped "advisor strategy" (beta) on 2026-06-09.** Same pattern, 6 months later. Anthropic's June 2026 Skills release added an "advisor strategy" mode where agents consult an advisor model before deciding. That is literally what council-diff has shipped since v0.3.0: the 5-voice council consults, the Fable 5 Oracle adjudicates, the Brier audit closes the loop. The pattern was 6 months early and is still the only OSS implementation that ships the calibration layer underneath. Pairs with the official Skills standard cleanly. Drop `council-diff` into any `.claude/skills/` directory and it auto-loads.
+
+## Pattern source
+
+- [Karpathy, Sequoia AI Ascent, April 20, 2026](https://www.youtube.com/results?search_query=karpathy+sequoia+ai+ascent+software+3.0). Software 3.0 framing + agentic engineering job description.
+- [Perplexity Model Council UI](https://www.perplexity.ai/hub/blog/perplexity-model-council)
+- [Orallexa multi-agent debate](https://github.com/alex-jb/orallexa-ai-trading-agent)
+- Cohere Command A+ grounding citation pattern (sources cited inline as `[src:...]`)
 
 ## Roadmap
 
 - [x] Brier audit math (v0.2)
+- [x] Fable 5 Oracle adjudication (v0.3)
+- [x] Data retention disclosure + safeMode (v0.3.1)
+- [x] Karpathy Software 3.0 positioning (v0.4)
 - [ ] Public Brier leaderboard at council.alex-jb.com
 - [ ] Streaming voice-by-voice output for UI
 - [ ] Python port (`pip install council-diff`)
