@@ -16,6 +16,8 @@ Built on the pattern from Perplexity's Model Council UI + the multi-agent debate
 
 **How is this different from Perplexity Model Council?** Perplexity's Model Council (Feb 2026) is a closed UI feature that compares the *same question* across *different providers* (GPT-5.2 vs Claude 4.6 vs Gemini side-by-side). council-diff is an OSS library that compares *different personas* (Garry / Naval / PG / Suster / Cuban) against *the same model*, with a Fable 5 Oracle adjudicating, and a Brier audit module that scores every voice over 30/90 days. Persona-of-the-judge instead of provider-of-the-judge. Closes the loop with reality.
 
+**Anthropic shipped "advisor strategy" (beta) on 2026-06-09 — same pattern, 6 months later.** Anthropic's June 2026 Skills release added an "advisor strategy" mode where agents consult an advisor model before deciding. That's literally what council-diff has shipped since v0.3.0: the 5-voice council consults, the Fable 5 Oracle adjudicates, the Brier audit closes the loop. We were 6 months early on the pattern and the only OSS implementation that ships the calibration layer underneath. Pairs with the official Skills standard cleanly — drop `council-diff` into any `.claude/skills/` directory and it auto-loads.
+
 ## Why
 
 Single-LLM verdicts hide their own uncertainty. A 90% confident answer from one model and disagreement among five specialists carry very different signals. Council-diff exposes the disagreement.
