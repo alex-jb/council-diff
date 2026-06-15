@@ -1,5 +1,9 @@
 # council-diff
 
+[![npm version](https://img.shields.io/npm/v/council-diff.svg)](https://www.npmjs.com/package/council-diff)
+[![npm downloads](https://img.shields.io/npm/dm/council-diff.svg)](https://www.npmjs.com/package/council-diff)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 > [English](README.md) · [中文](README.zh-CN.md)
 
 ### Software 3.0 Reference Implementation · The OSS evaluation loop for multi-persona AI agents
