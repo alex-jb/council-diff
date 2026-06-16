@@ -54,6 +54,18 @@ For 6 built-in domains:
 
 Plus `custom` for fully user-defined rosters.
 
+## Live case study
+
+**[GOOGL Q3 2026 — Druckenmiller vs Berkshire](./docs/case-studies/googl-q3-2026.md)** (fired 2026-06-15, investor domain)
+
+Q1 2026: Druckenmiller exited GOOGL entirely. Berkshire opened a new ~$10B position. Single-LLM would pick a side. The council exposed the disagreement:
+
+- **Recommendation**: `WAIT` · Agreement: `0.78`
+- **Per-voice spread**: Activist Short 38/100 ↔ Growth VC 72/100
+- **Consensus**: *"The smart-money divergence is the single most important data point — this is a 'right idea, wrong size' situation until antitrust resolution clarifies."*
+
+That 34-point spread between two professional perspectives is the signal a single-LLM answer erases. Reproduce locally with `npx tsx examples/investor.ts`. [Full per-voice breakdown →](./docs/case-studies/googl-q3-2026.md)
+
 ## Install
 
 ```bash
