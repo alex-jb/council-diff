@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "build": "tsc",
+    "prepare": "tsc",
     "test": "node --test --import tsx examples/test.ts",
     "example": "tsx examples/founder.ts",
     "example:oracle": "tsx examples/oracle.ts"
