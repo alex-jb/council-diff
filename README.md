@@ -54,17 +54,26 @@ For 6 built-in domains:
 
 Plus `custom` for fully user-defined rosters.
 
-## Live case study
+## Live case studies — quartet covering the full GO → KILL spectrum
 
-**[GOOGL Q3 2026 — Druckenmiller vs Berkshire](./docs/case-studies/googl-q3-2026.md)** (fired 2026-06-15, investor domain)
+Four real `council.deliberate()` fires from 2026-06. Same engine. Four different verdict shapes. The shape of the question determined the shape of the verdict — and the agreement score is the calibration signal.
 
-Q1 2026: Druckenmiller exited GOOGL entirely. Berkshire opened a new ~$10B position. Single-LLM would pick a side. The council exposed the disagreement:
+| Case | Domain | Verdict | Agreement | Voice spread | Example |
+|---|---|---|---|---|---|
+| [Crypto payments on B2B SaaS](https://github.com/alex-jb/council-for-slack-2026/blob/main/docs/case-studies/crypto-payments-2026-06.md) | founder | **KILL** | **0.94** | 4 → 12 (8 pt, tightest) | `examples/founder-crypto-payments.ts` |
+| [Annual billing at 2 months free](https://github.com/alex-jb/council-for-slack-2026/blob/main/docs/case-studies/annual-billing-2026-06.md) | founder | GO | 0.89 | 72 → 88 (16 pt) | `examples/founder-annual-billing.ts` |
+| [GOOGL Q3 2026 — Druckenmiller vs Berkshire](./docs/case-studies/googl-q3-2026.md) | investor | WAIT | 0.78 | 38 → 72 (34 pt) | `examples/investor.ts` |
+| [Rust rewrite of Python inference router](https://github.com/alex-jb/council-for-slack-2026/blob/main/docs/case-studies/rust-rewrite-2026-06.md) | engineer | WAIT | 0.62 | 22 → 72 (50 pt, widest) | `examples/engineer-rust-rewrite.ts` |
 
-- **Recommendation**: `WAIT` · Agreement: `0.78`
-- **Per-voice spread**: Activist Short 38/100 ↔ Growth VC 72/100
-- **Consensus**: *"The smart-money divergence is the single most important data point — this is a 'right idea, wrong size' situation until antitrust resolution clarifies."*
+Agreement range: **0.62 → 0.94**. Voice spread range: **8 → 50 points**. Verdicts span GO / WAIT / KILL.
 
-That 34-point spread between two professional perspectives is the signal a single-LLM answer erases. Reproduce locally with `npx tsx examples/investor.ts`. [Full per-voice breakdown →](./docs/case-studies/googl-q3-2026.md)
+Reproduce any of these locally:
+
+```bash
+ANTHROPIC_API_KEY=sk-... npx tsx examples/founder-crypto-payments.ts
+```
+
+Each fire ~$0.03, ~10s. **The verdicts were not chosen for variety** — the quartet was selected before firing for question shape diversity. The fact that the cleanest convergence (0.94 agreement, 8-pt spread) is on a KILL is itself the calibration claim: when every framing converges against, the council collapses tighter than for any single GO.
 
 ## Install
 
