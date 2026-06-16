@@ -8,6 +8,26 @@ All notable changes to council-diff. Versioning follows semver.
 - Streaming voice-by-voice output (planned)
 - Python port parity tracking (see [council-diff-py](https://github.com/alex-jb/council-diff-py))
 
+## [0.4.2] / 2026-06-16 / GitHub-install support + skills.sh 71 platforms
+
+### Fixed
+- `prepare: tsc` script added so `npm install github:alex-jb/council-diff#v0.4.2` auto-builds `dist/`. Without this, downstream TypeScript consumers (e.g. council-for-slack) failed to type-check against GitHub-tag installs.
+
+### Distribution
+- council-diff now installs across **71 AI agent platforms** via skills.sh `npx skills add alex-jb/council-diff`. Verified install on Amp, Antigravity, Antigravity CLI, Claude Code, Cline, Codex, Cursor, Deep Agents, Gemini CLI, GitHub Copilot, Kimi Code CLI, Open Code, Warp, Zed + 57 more.
+- README + README.zh-CN updated with new install snippets.
+
+## [0.4.1] / 2026-06-16 / Security patches — Anthropic SDK + esbuild
+
+### Security
+- Upgraded `@anthropic-ai/sdk` to ≥0.91.1 to clear [GHSA-p7fg-763f-g4gf](https://github.com/advisories/GHSA-p7fg-763f-g4gf) (CWE-732, insecure default file permissions in the local-filesystem memory tool).
+- Patched transitive `esbuild` vulns: [GHSA-gv7w-rqvm-qjhr](https://github.com/advisories/GHSA-gv7w-rqvm-qjhr) (NPM_CONFIG_REGISTRY RCE) + [GHSA-g7r4-m6w7-qqqr](https://github.com/advisories/GHSA-g7r4-m6w7-qqqr) (arbitrary file read on Windows dev server).
+- `npm audit` post-upgrade: **0 vulnerabilities**.
+- skills.sh Snyk scan should drop council-diff from Med Risk → Safe on next index pass.
+
+### Why
+2026-06-16 Snyk Med Risk flag traced to `@anthropic-ai/sdk 0.79-0.91` range. No API surface change for consumers.
+
 ## [0.4.0] / 2026-06-14 / Karpathy Software 3.0 repositioning
 
 ### Changed

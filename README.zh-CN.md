@@ -74,11 +74,14 @@ ANTHROPIC_API_KEY=sk-... npx tsx examples/founder-crypto-payments.ts
 ## 安装
 
 ```bash
-# npm (TypeScript / Node)
+# npm (TypeScript / Node) — v0.4.2 audit-clean, 0 vulns
 npm install council-diff
 
-# Vercel skills.sh (agent 无关, 兼容 Claude Code / Codex / Cursor / OpenClaw)
-npx skills i alex-jb/council-diff
+# skills.sh — 跨 71 个 AI agent 平台分发
+# (Amp, Antigravity, Antigravity CLI, Claude Code, Cline, Codex, Cursor,
+#  Deep Agents, Gemini CLI, GitHub Copilot, Kimi Code CLI, Open Code,
+#  Warp, Zed,+57 个)
+npx skills add alex-jb/council-diff
 ```
 
 ## 快速开始
