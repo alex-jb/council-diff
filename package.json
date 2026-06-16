@@ -5,7 +5,9 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "node --test --import tsx examples/test.ts",
@@ -42,7 +44,7 @@
   },
   "homepage": "https://github.com/alex-jb/council-diff#readme",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.82.0"
+    "@anthropic-ai/sdk": "^0.104.2"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
