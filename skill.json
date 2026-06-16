@@ -1,0 +1,62 @@
+{
+  "$schema": "https://skills.sh/schema/skill.json",
+  "name": "council-diff",
+  "version": "0.4.0",
+  "description": "5 domain-typed AI personas debate any decision in parallel. ~10s, ~$0.03 per fire. Brier-audited at resolution. The smallest reproducible eval loop for multi-persona agents.",
+  "author": "Alex Ji (@alex-jb)",
+  "license": "MIT",
+  "homepage": "https://github.com/alex-jb/council-diff",
+  "tags": ["ai", "evaluation", "agents", "anthropic", "claude", "decision-making", "calibration", "brier"],
+  "compatible_with": [
+    "claude-code",
+    "claude-desktop",
+    "cursor",
+    "codex",
+    "openclaw"
+  ],
+  "install": {
+    "method": "npm",
+    "package": "council-diff"
+  },
+  "usage": {
+    "import": "import { CouncilDiff } from 'council-diff';",
+    "example": "const council = new CouncilDiff();\nconst result = await council.deliberate({\n  domain: 'founder',\n  decision: 'should we add annual billing?',\n  context: 'B2B SaaS, $14K MRR, 40% involuntary churn',\n});\nconsole.log(result.recommendation, result.agreement_score);"
+  },
+  "domains": [
+    {
+      "id": "founder",
+      "voices": ["YC Partner", "Tier-1 VC Skeptic", "Startup Lawyer", "Indie CFO", "Pragmatic Spouse"]
+    },
+    {
+      "id": "engineer",
+      "voices": ["Rust Core Maintainer", "SRE Oncall", "Tech Recruiter", "Junior Dev Just Onboarded", "CTO 5 Years From Now"]
+    },
+    {
+      "id": "investor",
+      "voices": ["Macro Strategist", "Sector Analyst", "Portfolio Manager", "Growth VC", "Activist Short"]
+    },
+    {
+      "id": "product",
+      "voices": ["PM", "Designer", "Customer Success", "Sales Eng", "User Advocate"]
+    },
+    {
+      "id": "quant",
+      "voices": ["Risk Manager", "Vol Trader", "Macro Strategist", "Market Microstructure", "Tail Risk"]
+    },
+    {
+      "id": "career",
+      "voices": ["Recruiter", "Senior IC", "Eng Manager", "Skip-level VP", "Past You"]
+    }
+  ],
+  "showcase": {
+    "case_studies": [
+      "https://github.com/alex-jb/council-diff/blob/main/docs/case-studies/googl-q3-2026.md"
+    ],
+    "examples": [
+      "https://github.com/alex-jb/council-diff/blob/main/examples/founder-annual-billing.ts",
+      "https://github.com/alex-jb/council-diff/blob/main/examples/engineer-rust-rewrite.ts",
+      "https://github.com/alex-jb/council-diff/blob/main/examples/founder-crypto-payments.ts",
+      "https://github.com/alex-jb/council-diff/blob/main/examples/investor.ts"
+    ]
+  }
+}
