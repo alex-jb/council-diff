@@ -3,7 +3,7 @@ name: council-diff
 description: Run a 5-voice AI council on any decision (founder, engineer, investor, career, product, quant, or custom roster). Voices deliberate in parallel against the same model, an optional Fable 5 Oracle adjudicates, and a Brier audit module scores every voice over 30/90 days. Use when the user wants multiple expert perspectives on a hard call, when single-LLM verdicts feel overconfident, when they ask for "second opinions" or "have a council look at this," or when they want their advice tracked for calibration. Requires ANTHROPIC_API_KEY.
 license: MIT
 metadata:
-  version: "0.4.0"
+  version: "0.4.1"
   homepage: "https://github.com/alex-jb/council-diff"
   author: "alex-jb"
   runtime: "node>=18"
