@@ -1,6 +1,6 @@
 {
   "name": "council-diff",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Software 3.0 reference implementation: the OSS evaluation loop for multi-persona AI agents. 5-voice council, optional Fable 5 Oracle adjudication, Brier-audited at resolution. Maps 1:1 to Karpathy's agentic engineering job description.",
   "type": "module",
   "main": "dist/index.js",
