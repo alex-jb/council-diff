@@ -81,8 +81,11 @@ Each fire ~$0.03, ~10s. **The verdicts were not chosen for variety** — the qua
 # npm (TypeScript / Node)
 npm install council-diff
 
-# Vercel skills.sh (agent-agnostic, works with Claude Code / Codex / Cursor / OpenClaw)
-npx skills i alex-jb/council-diff
+# skills.sh — agent-agnostic distribution, supports 71 AI agent platforms
+# (Amp, Antigravity, Antigravity CLI, Claude Code, Cline, Codex, Cursor,
+#  Deep Agents, Gemini CLI, GitHub Copilot, Kimi Code CLI, Open Code,
+#  Warp, Zed, +57 more)
+npx skills add alex-jb/council-diff
 ```
 
 ## Quickstart
