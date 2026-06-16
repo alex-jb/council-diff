@@ -50,6 +50,27 @@ Persona-vs-persona 格式是规格。Agreement score 是测试。Brier 审核是
 
 加 `custom` 完全自定义 voice 列表。
 
+## 真实案例研究 — 完整 GO → KILL 谱
+
+2026-06 真实 `council.deliberate()` 开火 4 次。同引擎,四种 verdict shape。**问题的形状决定了 verdict 的形状** — 一致度是校准信号。
+
+| 案例 | 域 | 推荐 | 一致度 | 声音分差 | 例子 |
+|---|---|---|---|---|---|
+| [加密支付 (B2B SaaS 零需求)](https://github.com/alex-jb/council-for-slack-2026/blob/main/docs/case-studies/crypto-payments-2026-06.md) | founder | **KILL** | **0.94** | 4 → 12 (8 分,最窄) | `examples/founder-crypto-payments.ts` |
+| [年付 (送 2 个月)](https://github.com/alex-jb/council-for-slack-2026/blob/main/docs/case-studies/annual-billing-2026-06.md) | founder | GO | 0.89 | 72 → 88 (16 分) | `examples/founder-annual-billing.ts` |
+| [GOOGL Q3 2026 (Druckenmiller vs Berkshire)](./docs/case-studies/googl-q3-2026.md) | investor | WAIT | 0.78 | 38 → 72 (34 分) | `examples/investor.ts` |
+| [Rust 重写 Python inference router](https://github.com/alex-jb/council-for-slack-2026/blob/main/docs/case-studies/rust-rewrite-2026-06.md) | engineer | WAIT | 0.62 | 22 → 72 (50 分,最宽) | `examples/engineer-rust-rewrite.ts` |
+
+一致度区间 **0.62 → 0.94**。声音分差区间 **8 → 50 分**。Verdict 覆盖 GO / WAIT / KILL 全谱。
+
+本地复现任一案例:
+
+```bash
+ANTHROPIC_API_KEY=sk-... npx tsx examples/founder-crypto-payments.ts
+```
+
+每次开火 ~$0.03, ~10 秒。**Verdict 不是为了多样性挑的** — 这 4 个案例是开火前按问题形状多样性挑的。最紧的一致度 (0.94, 8 分分差) 出现在 KILL 上 — 这本身就是校准声明: 当每个框架都收敛反对,council 比任何单个 GO 都收敛更紧。
+
 ## 安装
 
 ```bash
