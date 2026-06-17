@@ -265,6 +265,7 @@ See `src/brier.ts` for `predictedProbability` math + persistence-agnostic interf
 - [x] Fable 5 Oracle adjudication (v0.3)
 - [x] Data retention disclosure + safeMode (v0.3.1)
 - [x] Karpathy Software 3.0 positioning (v0.4)
+- [ ] **v0.5 TREX — execution-before-review** ([spec](docs/v0.5-trex-execution-spec.md)): Docker DinD sandbox runs candidate diff against repo tests, the 5 voices then review against *observed* test output, not just the diff. Kills the "looks correct but breaks main" failure mode.
 - [ ] Public Brier leaderboard at council.alex-jb.com
 - [ ] Streaming voice-by-voice output for UI
 - [ ] Python port (`pip install council-diff`)
