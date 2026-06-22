@@ -301,6 +301,7 @@ const {
   MockAdapter,
   AnthropicAdapter,
   OpenAIAdapter,
+  GlmAdapter,
   buildAdapter,
   MYTHOS_MODELS: MYTHOS_FROM_ADAPTER,
 } = await import("../src/llm-adapter.js");
@@ -410,6 +411,37 @@ try {
 if (savedOaiKey !== undefined) process.env.OPENAI_API_KEY = savedOaiKey;
 check("OpenAIAdapter throws if OPENAI_API_KEY missing", oaiThrew);
 
+// GlmAdapter: same shape as OpenAIAdapter, different env var, named "glm"
+const glm = new GlmAdapter({ apiKey: "test-only-not-real" });
+check(
+  "GlmAdapter.name is 'glm'",
+  glm.name === "glm",
+);
+check(
+  "GlmAdapter.retentionFor always returns zero",
+  glm.retentionFor("glm-5.2") === "zero" && glm.retentionFor("any") === "zero",
+);
+check(
+  "GlmAdapter.supportedModels includes glm-4.6 + glm-5.2",
+  glm.supportedModels().includes("glm-4.6") && glm.supportedModels().includes("glm-5.2"),
+);
+check(
+  "GlmAdapter does NOT advertise OpenAI models",
+  !glm.supportedModels().includes("gpt-5") && !glm.supportedModels().includes("gpt-4.1"),
+);
+
+// GlmAdapter: missing key throws
+let glmThrew = false;
+const savedGlmKey = process.env.GLM_API_KEY;
+delete process.env.GLM_API_KEY;
+try {
+  new GlmAdapter();
+} catch (e) {
+  glmThrew = (e as Error).message.includes("GLM_API_KEY");
+}
+if (savedGlmKey !== undefined) process.env.GLM_API_KEY = savedGlmKey;
+check("GlmAdapter throws if GLM_API_KEY missing", glmThrew);
+
 // buildAdapter() respects COUNCIL_DIFF_PROVIDER env var
 const savedProvider = process.env.COUNCIL_DIFF_PROVIDER;
 process.env.ANTHROPIC_API_KEY = "test-only";
@@ -421,6 +453,11 @@ check("buildAdapter() COUNCIL_DIFF_PROVIDER=anthropic → AnthropicAdapter", a1.
 process.env.COUNCIL_DIFF_PROVIDER = "openai";
 const a2 = buildAdapter();
 check("buildAdapter() COUNCIL_DIFF_PROVIDER=openai → OpenAIAdapter", a2.name === "openai");
+
+process.env.GLM_API_KEY = "test-only";
+process.env.COUNCIL_DIFF_PROVIDER = "glm";
+const a3 = buildAdapter();
+check("buildAdapter() COUNCIL_DIFF_PROVIDER=glm → GlmAdapter", a3.name === "glm");
 
 process.env.COUNCIL_DIFF_PROVIDER = "bogus-xyz";
 let factoryThrew = false;

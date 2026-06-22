@@ -283,6 +283,61 @@ export class OpenAIAdapter implements LlmAdapter {
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// GlmAdapter — ZhipuAI GLM via the OpenAI-compatible endpoint
+// ─────────────────────────────────────────────────────────────────────
+
+const GLM_BASE_URL = "https://open.bigmodel.cn/api/paas/v4";
+
+const GLM_MODELS = [
+  "glm-4.6",
+  "glm-5.2",
+  "glm-zero-preview",
+];
+
+export interface GlmAdapterOptions {
+  apiKey?: string;
+  /** Override the canonical bigmodel.cn base URL — only useful for
+   *  testing or for users routing through their own ZhipuAI proxy. */
+  baseURL?: string;
+}
+
+/**
+ * Subclasses OpenAIAdapter to reuse the wire format unchanged — GLM
+ * exposes /v4/chat/completions in the OpenAI shape (same message
+ * array, same usage block, same response.choices structure). Only
+ * what differs lives here: env-var name (GLM_API_KEY, not
+ * OPENAI_API_KEY), the bigmodel.cn base URL by default, the GLM
+ * model registry, and the adapter name.
+ *
+ * Setup:
+ *   npm install openai          # transitively used; same SDK works
+ *   export GLM_API_KEY=...      # from open.bigmodel.cn/usercenter/apikeys
+ *   COUNCIL_DIFF_PROVIDER=glm npx council-diff ...
+ *
+ * Mirrors the Orallexa-side GlmProvider (commit a6750a9 in
+ * alex-jb/orallexa-ai-trading-agent) so callers familiar with one
+ * can predict the other.
+ */
+export class GlmAdapter extends OpenAIAdapter {
+  constructor(opts: GlmAdapterOptions = {}) {
+    const key = opts.apiKey ?? process.env.GLM_API_KEY;
+    if (!key) throw new Error(
+      "GLM_API_KEY not set. Get a key from " +
+      "https://open.bigmodel.cn/usercenter/apikeys then " +
+      "`export GLM_API_KEY=...` before invoking GlmAdapter.",
+    );
+    super({ apiKey: key, baseURL: opts.baseURL ?? GLM_BASE_URL }, "glm");
+  }
+
+  supportedModels(): string[] {
+    return [...GLM_MODELS];
+  }
+
+  // retentionFor inherited from OpenAIAdapter (always "zero" — GLM
+  // does not have an equivalent of Anthropic Mythos-class retention).
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // Factory — env-var dispatch
 // ─────────────────────────────────────────────────────────────────────
 
@@ -292,6 +347,7 @@ export class OpenAIAdapter implements LlmAdapter {
  * Selection rules:
  *   - `COUNCIL_DIFF_PROVIDER=anthropic` (or unset) → AnthropicAdapter
  *   - `COUNCIL_DIFF_PROVIDER=openai`              → OpenAIAdapter
+ *   - `COUNCIL_DIFF_PROVIDER=glm`                 → GlmAdapter
  *   - any other value                              → Error
  *
  * Tests should construct adapters directly (MockAdapter) and pass them
@@ -307,9 +363,11 @@ export function buildAdapter(): LlmAdapter {
       return new AnthropicAdapter();
     case "openai":
       return new OpenAIAdapter();
+    case "glm":
+      return new GlmAdapter();
     default:
       throw new Error(
-        `Unknown COUNCIL_DIFF_PROVIDER='${provider}'. Supported: anthropic, openai.`,
+        `Unknown COUNCIL_DIFF_PROVIDER='${provider}'. Supported: anthropic, openai, glm.`,
       );
   }
 }

@@ -30,6 +30,7 @@ export {
   type DataRetention,
   AnthropicAdapter,
   OpenAIAdapter,
+  GlmAdapter,
   MockAdapter,
   buildAdapter,
   MYTHOS_MODELS,
