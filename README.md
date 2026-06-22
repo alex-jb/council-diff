@@ -112,6 +112,38 @@ for (const v of result.voices) {
 }
 ```
 
+## Bring your own provider (v0.6+)
+
+By default the council runs on Anthropic (`claude-sonnet-4-6`). To swap providers, set `COUNCIL_DIFF_PROVIDER`:
+
+```bash
+# Default — Anthropic
+ANTHROPIC_API_KEY=sk-ant-... npx council-diff ...
+
+# OpenAI (gpt-5 / gpt-5.1 / gpt-4.1 …)
+COUNCIL_DIFF_PROVIDER=openai OPENAI_API_KEY=sk-... npx council-diff ...
+```
+
+Or inject a custom adapter from code — useful for tests, GLM/local-model integrations, or any provider with an OpenAI-compatible endpoint:
+
+```ts
+import { CouncilDiff, MockAdapter, OpenAIAdapter } from "council-diff";
+
+// Unit-test against a canned response, no API spend
+const fake = new MockAdapter({ responseText: '{"voices":[...],"consensus":"...","recommendation":"go"}' });
+const result = await new CouncilDiff({ adapter: fake, model: "mock-1" })
+  .deliberate({ domain: "founder", decision: "ship it?" });
+
+// OpenAI-compatible endpoint (e.g. ZhipuAI GLM-5.2)
+const glm = new OpenAIAdapter({
+  apiKey: process.env.GLM_API_KEY,
+  baseURL: "https://open.bigmodel.cn/api/paas/v4",
+});
+const council = new CouncilDiff({ adapter: glm, model: "glm-5.2" });
+```
+
+Adapter contract — three methods (`chat` / `supportedModels` / `retentionFor`); see `src/llm-adapter.ts`. The `retentionFor(model)` method drives `OracleVerdict.data_retention` so the 30-day-Mythos disclosure stays correct regardless of provider.
+
 ## Oracle mode (Fable 5)
 
 For hard calls, split councils, or anywhere you want a flagship-tier second opinion, opt into Oracle:

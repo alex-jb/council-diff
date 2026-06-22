@@ -21,7 +21,19 @@
  *   // result.agreement_score — 0-1, how much they agree
  */
 
-import Anthropic from "@anthropic-ai/sdk";
+import { type LlmAdapter, buildAdapter, MYTHOS_MODELS } from "./llm-adapter.js";
+
+export {
+  type LlmAdapter,
+  type ChatArgs,
+  type ChatResult,
+  type DataRetention,
+  AnthropicAdapter,
+  OpenAIAdapter,
+  MockAdapter,
+  buildAdapter,
+  MYTHOS_MODELS,
+} from "./llm-adapter.js";
 
 export type CouncilDomain =
   | "founder"
@@ -180,17 +192,18 @@ export interface CouncilOptions {
    * health journals, on-device-only marketing, GDPR-sensitive PII).
    */
   safeMode?: boolean;
+  /**
+   * Provider adapter (v0.6+, issue #1). When omitted, defaults to
+   * `buildAdapter()` which reads `COUNCIL_DIFF_PROVIDER` (anthropic |
+   * openai). Pass `new MockAdapter()` in unit tests to avoid API spend.
+   * Pass a custom `LlmAdapter` to drop in any other provider — same
+   * three-method surface as the built-ins.
+   */
+  adapter?: LlmAdapter;
 }
 
-/**
- * Mythos-class models that carry Anthropic's 30-day data retention policy.
- * Centralized so it stays in sync with the official Anthropic announcement.
- * Source: support.claude.com/en/articles/15425996
- */
-const MYTHOS_MODELS = new Set<string>([
-  "claude-fable-5",
-  "claude-opus-4-7-mythos",
-]);
+// MYTHOS_MODELS imported + re-exported above from ./llm-adapter.js.
+// Source: support.claude.com/en/articles/15425996
 
 /**
  * The literal anti-injection delimiter prepended to user-supplied text.
@@ -251,14 +264,28 @@ Adjudicate.`;
 }
 
 export class CouncilDiff {
-  private client: Anthropic;
+  private adapter: LlmAdapter;
   private model: string;
   private safeMode: boolean;
 
   constructor(opts: CouncilOptions = {}) {
-    const key = opts.apiKey ?? process.env.ANTHROPIC_API_KEY;
-    if (!key) throw new Error("ANTHROPIC_API_KEY not set");
-    this.client = new Anthropic({ apiKey: key });
+    // Adapter wins if explicitly provided (tests + custom providers).
+    // Otherwise: if apiKey is passed, build an AnthropicAdapter directly
+    // (preserves pre-#1 ergonomics — `new CouncilDiff({ apiKey: "..." })`
+    // keeps working). Else: factory reads COUNCIL_DIFF_PROVIDER env.
+    if (opts.adapter) {
+      this.adapter = opts.adapter;
+    } else if (opts.apiKey) {
+      // Late import to keep AnthropicAdapter from being instantiated
+      // when a user supplies their own adapter but no apiKey.
+      // Reuses the exported class so it stays in one place.
+      const { AnthropicAdapter } = require("./llm-adapter.js") as {
+        AnthropicAdapter: new (o: { apiKey: string }) => LlmAdapter;
+      };
+      this.adapter = new AnthropicAdapter({ apiKey: opts.apiKey });
+    } else {
+      this.adapter = buildAdapter();
+    }
     this.model = opts.model ?? "claude-sonnet-4-6";
     this.safeMode = opts.safeMode ?? false;
   }
@@ -294,18 +321,17 @@ Schema:
 
     const user = buildDeliberateUserPrompt(input);
 
-    const msg = await this.client.messages.create({
+    const { text } = await this.adapter.chat({
       model: this.model,
       max_tokens: 2500,
       system,
       messages: [{ role: "user", content: user }],
     });
 
-    const textBlock = msg.content.find((c) => c.type === "text");
-    if (!textBlock || textBlock.type !== "text") {
-      throw new Error("Empty response from Claude");
+    if (!text) {
+      throw new Error(`Empty response from ${this.adapter.name}`);
     }
-    const cleaned = textBlock.text
+    const cleaned = text
       .replace(/^```json\n/, "")
       .replace(/^```\n/, "")
       .replace(/\n```$/, "");
@@ -381,18 +407,17 @@ Schema:
 
     const user = buildOracleUserPrompt(input, council, voicesSummary);
 
-    const msg = await this.client.messages.create({
+    const { text } = await this.adapter.chat({
       model: oracleModel,
       max_tokens: 800,
       system,
       messages: [{ role: "user", content: user }],
     });
 
-    const textBlock = msg.content.find((c) => c.type === "text");
-    if (!textBlock || textBlock.type !== "text") {
-      throw new Error("Empty response from Oracle");
+    if (!text) {
+      throw new Error(`Empty Oracle response from ${this.adapter.name}`);
     }
-    const cleaned = textBlock.text
+    const cleaned = text
       .replace(/^```json\n/, "")
       .replace(/^```\n/, "")
       .replace(/\n```$/, "");
@@ -409,7 +434,7 @@ Schema:
       score: parsed.score,
       verdict: parsed.verdict,
       override_reason: parsed.override_reason || undefined,
-      data_retention: MYTHOS_MODELS.has(oracleModel) ? "30day-mythos" : "zero",
+      data_retention: this.adapter.retentionFor(oracleModel),
       downgraded: downgraded || undefined,
     };
   }

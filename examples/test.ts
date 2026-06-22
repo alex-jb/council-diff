@@ -287,6 +287,206 @@ check(
   oAdv > oBegin && oAdv < oEnd,
 );
 
+// =============================================================
+// llm-adapter contract tests (#1 — issue gh/alex-jb/council-diff#1)
+// =============================================================
+// These verify the LlmAdapter abstraction without making real API calls.
+// Each adapter must satisfy: chat returns text + usage + raw, retentionFor
+// classifies Mythos-class as 30day-mythos and everything else as zero.
+
+console.log("\nLlm-adapter contract tests (issue #1)");
+console.log("=====================================");
+
+const {
+  MockAdapter,
+  AnthropicAdapter,
+  OpenAIAdapter,
+  buildAdapter,
+  MYTHOS_MODELS: MYTHOS_FROM_ADAPTER,
+} = await import("../src/llm-adapter.js");
+
+// MockAdapter: deterministic, no network, records calls
+const mock = new MockAdapter({
+  responseText: "hello from mock",
+  usage: { input_tokens: 12, output_tokens: 3 },
+});
+const mr = await mock.chat({
+  system: "be brief",
+  messages: [{ role: "user", content: "hi" }],
+  model: "mock-1",
+  max_tokens: 100,
+});
+check(
+  "MockAdapter.chat returns canned text + usage + raw",
+  mr.text === "hello from mock"
+    && mr.usage.input_tokens === 12
+    && mr.usage.output_tokens === 3
+    && typeof mr.raw === "object",
+);
+check(
+  "MockAdapter records call args for assertion",
+  mock.calls.length === 1 && mock.calls[0]?.model === "mock-1",
+);
+check(
+  "MockAdapter retention is 'zero' for any model",
+  mock.retentionFor("mock-1") === "zero" && mock.retentionFor("anything") === "zero",
+);
+
+// MockAdapter error path
+const throwingMock = new MockAdapter({ throwOn: new Error("boom") });
+let mockThrew = false;
+try {
+  await throwingMock.chat({
+    system: "x",
+    messages: [{ role: "user", content: "y" }],
+    model: "mock-1",
+    max_tokens: 10,
+  });
+} catch (e) {
+  mockThrew = (e as Error).message === "boom";
+}
+check("MockAdapter throwOn surfaces the error", mockThrew);
+
+// AnthropicAdapter: retention classification
+// Construct with a dummy key so we don't read env. We don't call chat()
+// here — that needs a real key — but retentionFor is pure.
+const anth = new AnthropicAdapter({ apiKey: "test-only-not-real" });
+check(
+  "AnthropicAdapter.retentionFor classifies Sonnet as zero",
+  anth.retentionFor("claude-sonnet-4-6") === "zero",
+);
+check(
+  "AnthropicAdapter.retentionFor classifies Haiku as zero",
+  anth.retentionFor("claude-haiku-4-5-20251001") === "zero",
+);
+check(
+  "AnthropicAdapter.retentionFor classifies Fable 5 as 30day-mythos",
+  anth.retentionFor("claude-fable-5") === "30day-mythos",
+);
+check(
+  "AnthropicAdapter.supportedModels includes Sonnet 4.6",
+  anth.supportedModels().includes("claude-sonnet-4-6"),
+);
+check(
+  "AnthropicAdapter.name is 'anthropic'",
+  anth.name === "anthropic",
+);
+
+// AnthropicAdapter: missing key throws
+let anthThrew = false;
+const savedAnthKey = process.env.ANTHROPIC_API_KEY;
+delete process.env.ANTHROPIC_API_KEY;
+try {
+  new AnthropicAdapter();
+} catch (e) {
+  anthThrew = (e as Error).message.includes("ANTHROPIC_API_KEY");
+}
+if (savedAnthKey !== undefined) process.env.ANTHROPIC_API_KEY = savedAnthKey;
+check("AnthropicAdapter throws if ANTHROPIC_API_KEY missing", anthThrew);
+
+// OpenAIAdapter: retention always zero, supports the OpenAI tier ids
+const oai = new OpenAIAdapter({ apiKey: "test-only-not-real" });
+check(
+  "OpenAIAdapter.retentionFor always returns zero",
+  oai.retentionFor("gpt-5") === "zero"
+    && oai.retentionFor("gpt-5.1") === "zero"
+    && oai.retentionFor("anything-else") === "zero",
+);
+check(
+  "OpenAIAdapter.supportedModels includes gpt-5 + gpt-5.1",
+  oai.supportedModels().includes("gpt-5") && oai.supportedModels().includes("gpt-5.1"),
+);
+check("OpenAIAdapter.name is 'openai'", oai.name === "openai");
+
+// OpenAIAdapter: missing key throws
+let oaiThrew = false;
+const savedOaiKey = process.env.OPENAI_API_KEY;
+delete process.env.OPENAI_API_KEY;
+try {
+  new OpenAIAdapter();
+} catch (e) {
+  oaiThrew = (e as Error).message.includes("OPENAI_API_KEY");
+}
+if (savedOaiKey !== undefined) process.env.OPENAI_API_KEY = savedOaiKey;
+check("OpenAIAdapter throws if OPENAI_API_KEY missing", oaiThrew);
+
+// buildAdapter() respects COUNCIL_DIFF_PROVIDER env var
+const savedProvider = process.env.COUNCIL_DIFF_PROVIDER;
+process.env.ANTHROPIC_API_KEY = "test-only";
+process.env.OPENAI_API_KEY = "test-only";
+process.env.COUNCIL_DIFF_PROVIDER = "anthropic";
+const a1 = buildAdapter();
+check("buildAdapter() COUNCIL_DIFF_PROVIDER=anthropic → AnthropicAdapter", a1.name === "anthropic");
+
+process.env.COUNCIL_DIFF_PROVIDER = "openai";
+const a2 = buildAdapter();
+check("buildAdapter() COUNCIL_DIFF_PROVIDER=openai → OpenAIAdapter", a2.name === "openai");
+
+process.env.COUNCIL_DIFF_PROVIDER = "bogus-xyz";
+let factoryThrew = false;
+try {
+  buildAdapter();
+} catch (e) {
+  factoryThrew = (e as Error).message.includes("bogus-xyz");
+}
+check("buildAdapter() unknown provider throws", factoryThrew);
+
+// Restore env
+if (savedProvider !== undefined) process.env.COUNCIL_DIFF_PROVIDER = savedProvider;
+else delete process.env.COUNCIL_DIFF_PROVIDER;
+if (savedAnthKey !== undefined) process.env.ANTHROPIC_API_KEY = savedAnthKey;
+else delete process.env.ANTHROPIC_API_KEY;
+if (savedOaiKey !== undefined) process.env.OPENAI_API_KEY = savedOaiKey;
+else delete process.env.OPENAI_API_KEY;
+
+// MYTHOS_MODELS is the single source of truth between files
+check(
+  "MYTHOS_MODELS exported from llm-adapter is non-empty",
+  MYTHOS_FROM_ADAPTER.size > 0,
+);
+check(
+  "MYTHOS_MODELS contains 'claude-fable-5'",
+  MYTHOS_FROM_ADAPTER.has("claude-fable-5"),
+);
+
+// CouncilDiff with an injected MockAdapter — proves the wiring without
+// burning API credits. We use a syntactically-valid JSON canned response
+// so the existing JSON.parse path runs end-to-end.
+const cannedDeliberate = JSON.stringify({
+  voices: [
+    { voice: "v1", voice_display: "V1", score: 70, verdict: "yes", strength: "s1", gap: "g1" },
+    { voice: "v2", voice_display: "V2", score: 60, verdict: "ok", strength: "s2", gap: "g2" },
+    { voice: "v3", voice_display: "V3", score: 50, verdict: "meh", strength: "s3", gap: "g3" },
+    { voice: "v4", voice_display: "V4", score: 80, verdict: "go", strength: "s4", gap: "g4" },
+    { voice: "v5", voice_display: "V5", score: 65, verdict: "lean go", strength: "s5", gap: "g5" },
+  ],
+  consensus: "council leans go with reservations from V3.",
+  recommendation: "go",
+});
+
+const { CouncilDiff } = await import("../src/index.js");
+
+const cdMock = new MockAdapter({ responseText: cannedDeliberate });
+const cd = new CouncilDiff({ adapter: cdMock, model: "mock-1" });
+const result = await cd.deliberate({
+  domain: "founder",
+  decision: "ship it?",
+  context: "B2B SaaS at $5K MRR",
+});
+check(
+  "CouncilDiff.deliberate routes through injected adapter",
+  cdMock.calls.length === 1 && cdMock.calls[0]?.model === "mock-1",
+);
+check(
+  "CouncilDiff.deliberate parses canned JSON into 5 voices",
+  result.voices.length === 5 && result.recommendation === "go",
+);
+check(
+  "CouncilDiff.deliberate computes agreement_score from scores",
+  typeof result.agreement_score === "number"
+    && result.agreement_score > 0 && result.agreement_score <= 1,
+);
+
 console.log("\n============================");
 console.log(`Result: ${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);

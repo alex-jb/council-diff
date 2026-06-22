@@ -4,8 +4,23 @@ All notable changes to council-diff. Versioning follows semver.
 
 ## [Unreleased]
 
-### Added
-- Streaming voice-by-voice output (planned)
+### Added (issue #1 — llm_adapter abstraction)
+- `src/llm-adapter.ts` introduces a thin `LlmAdapter` interface (`chat` / `supportedModels` / `retentionFor`) with three built-in implementations:
+  - `AnthropicAdapter` — preserves the pre-#1 code path (no behavior change for existing users)
+  - `OpenAIAdapter` — gpt-5 / gpt-5.1 / gpt-4.1 tier; openai SDK is an optional peer, lazy-imported only when the adapter actually runs
+  - `MockAdapter` — deterministic canned responses for unit tests, no network
+- `CouncilDiff` constructor accepts `{ adapter }` so callers can inject any `LlmAdapter` (custom GLM, local-model bridge, OpenAI-compatible endpoint, test mock).
+- `buildAdapter()` factory reads `COUNCIL_DIFF_PROVIDER` (`anthropic` | `openai`) for env-var dispatch.
+- README "Bring your own provider" section with code samples for the OpenAI swap + GLM-via-base-URL pattern + test mock.
+- 23 new contract tests covering all three adapters + factory + CouncilDiff routing through MockAdapter end-to-end. Total: 55 tests, 0 LLM credit spend.
+
+### Changed
+- `MYTHOS_MODELS` set moved to `src/llm-adapter.ts` (single source of truth, re-exported from `src/index.ts` for back-compat).
+- `OracleVerdict.data_retention` now sourced from `adapter.retentionFor(model)` instead of a hard-coded set lookup — keeps the field correct when running against non-Anthropic providers.
+- Backwards-compatible: `new CouncilDiff({ apiKey: "..." })` continues to work and now wraps an `AnthropicAdapter` under the hood.
+
+### Previously planned (still on roadmap)
+- Streaming voice-by-voice output
 - Python port parity tracking (see [council-diff-py](https://github.com/alex-jb/council-diff-py))
 
 ## [0.4.2] / 2026-06-16 / GitHub-install support + skills.sh 71 platforms
