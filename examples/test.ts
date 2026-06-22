@@ -487,6 +487,82 @@ check(
     && result.agreement_score > 0 && result.agreement_score <= 1,
 );
 
+// =============================================================
+// Clarify-before-answer tests (Cyrus "tier-2" pattern, 2026-06-21)
+// =============================================================
+// The CouncilDiff.clarify() method should ask 1-3 high-leverage
+// questions before the user invokes deliberate(). Empty array means
+// the context is already sufficient — caller proceeds without delay.
+
+console.log("\nClarify (tier-2 reverse-clarification) tests");
+console.log("=============================================");
+
+// Case A: 3 questions returned
+const clarifyCanned3 = JSON.stringify({
+  questions: [
+    "What is your current MRR and growth rate?",
+    "How much runway do you have at current burn?",
+    "Are you the sole founder or do you have co-founders?",
+  ],
+  rationale: "Founder + funding decisions hinge on revenue trajectory + runway + team structure. Without these three, the council can only speak in generalities.",
+});
+const cMock3 = new MockAdapter({ responseText: clarifyCanned3 });
+const c3 = await new CouncilDiff({ adapter: cMock3, model: "mock-1" }).clarify({
+  domain: "founder",
+  decision: "Should I raise a seed?",
+});
+check(
+  "clarify() returns 3 questions when context thin",
+  c3.questions.length === 3
+    && c3.questions[0]?.includes("MRR")
+    && typeof c3.rationale === "string"
+    && c3.rationale.length > 10,
+);
+check(
+  "clarify() stamps computed_at ISO timestamp",
+  /^\d{4}-\d{2}-\d{2}T/.test(c3.computed_at),
+);
+check(
+  "clarify() routes through adapter (recorded call)",
+  cMock3.calls.length === 1 && cMock3.calls[0]?.model === "mock-1",
+);
+
+// Case B: 0 questions — context is sufficient
+const clarifyCanned0 = JSON.stringify({
+  questions: [],
+  rationale: "Context is sufficient; no clarifications needed.",
+});
+const cMock0 = new MockAdapter({ responseText: clarifyCanned0 });
+const c0 = await new CouncilDiff({ adapter: cMock0, model: "mock-1" }).clarify({
+  domain: "founder",
+  decision: "Should I raise a $1M seed at $8M cap?",
+  context: "B2B SaaS, $12K MRR growing 25% MoM, solo founder, 14mo runway, 2 term sheets in hand at $8M and $10M caps.",
+});
+check(
+  "clarify() returns empty array when context is concrete",
+  c0.questions.length === 0,
+);
+check(
+  "clarify() rationale explains why empty",
+  c0.rationale.toLowerCase().includes("sufficient")
+    || c0.rationale.toLowerCase().includes("no clarification"),
+);
+
+// Case C: clamp to 3 questions even if model returns more
+const clarifyCanned5 = JSON.stringify({
+  questions: ["q1", "q2", "q3", "q4", "q5"],
+  rationale: "five things",
+});
+const cMock5 = new MockAdapter({ responseText: clarifyCanned5 });
+const c5 = await new CouncilDiff({ adapter: cMock5, model: "mock-1" }).clarify({
+  domain: "engineer",
+  decision: "Rewrite in Rust?",
+});
+check(
+  "clarify() clamps to max 3 questions",
+  c5.questions.length === 3,
+);
+
 console.log("\n============================");
 console.log(`Result: ${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);

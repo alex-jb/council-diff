@@ -96,6 +96,32 @@ export interface DeliberateInput {
   oracle?: "fable-5" | string;
 }
 
+/**
+ * Output of CouncilDiff.clarify() — the pre-deliberation "ask before
+ * answer" pass that turns a single-shot Q&A into a 2-step flow.
+ *
+ * Pattern source: Cyrus 说 AI 2026-06 cross-post of Dan-on-Claude
+ * "tier-2 reverse-clarification" technique — the LLM asks for missing
+ * context BEFORE committing to a verdict, dramatically improving the
+ * quality of the eventual answer.
+ */
+export interface ClarifyResult {
+  /**
+   * 1-3 questions the council needs answered before deliberating. If
+   * empty array, the provided context is sufficient and the caller
+   * can go straight to `deliberate()`.
+   */
+  questions: string[];
+  /**
+   * One-paragraph rationale explaining why these questions matter
+   * (or why no questions were needed). Helps the caller decide
+   * whether to invest in answering vs. proceeding with partial info.
+   */
+  rationale: string;
+  /** ISO timestamp of the clarify call. */
+  computed_at: string;
+}
+
 const DOMAIN_VOICES: Record<CouncilDomain, { slug: string; display: string; role: string }[]> = {
   founder: [
     { slug: "yc_partner", display: "YC Partner",
@@ -288,6 +314,74 @@ export class CouncilDiff {
     }
     this.model = opts.model ?? "claude-sonnet-4-6";
     this.safeMode = opts.safeMode ?? false;
+  }
+
+  /**
+   * Pre-deliberation clarifier — ask before answer.
+   *
+   * Given a decision + optional context, returns 1-3 essential questions
+   * whose answers would dramatically improve the quality of the
+   * subsequent council verdicts. The caller is expected to answer them
+   * (typically by appending to `context`) and then call `deliberate()`
+   * normally.
+   *
+   * Pattern source: Cyrus 说 AI cross-post of Dan-on-Claude (2026-06)
+   * "tier-2 reverse-clarification" — most users one-shot the model;
+   * the higher-leverage move is to let the model interview you first.
+   *
+   * Returns `{ questions: [], rationale: "context sufficient" }` when
+   * the provided input already has enough context for a meaningful
+   * council pass — callers should NOT treat an empty array as a bug
+   * but as a green light to proceed.
+   */
+  async clarify(input: DeliberateInput): Promise<ClarifyResult> {
+    const voiceList = input.domain === "custom" && input.custom_voices
+      ? input.custom_voices.map((v) => `${v.display} (${v.role_brief})`).join("; ")
+      : DOMAIN_VOICES[input.domain].map((v) => `${v.display} (${v.role})`).join("; ");
+
+    const system = `You are the pre-deliberation clarifier for a 5-voice AI council. The council is about to deliberate on a user's decision. Before they do, your job is to identify what's MISSING from the context that would make their verdicts higher-quality.
+
+Voices on this council: ${voiceList}
+
+Heuristic: pretend you are each voice. For each voice, write down (mentally) one thing they would WANT to know before forming an opinion. Pick the 1-3 questions that come up most often or matter most across voices. Skip the ones a smart human would have answered already from the obvious context.
+
+Output STRICT JSON:
+{
+  "questions": ["<question 1>", "<question 2>", "<question 3>"],
+  "rationale": "<1 paragraph, 30-60 words, explaining why these questions matter — or 'context is sufficient; no clarifications needed' if the array is empty>"
+}
+
+Rules:
+- questions length 0-3 ONLY. If you can't write 3 high-leverage questions, write 1 or 2 or 0. Do not pad.
+- Each question is 1 sentence, specific, answerable without research.
+- If the context is already concrete and sufficient (e.g. specific metrics, dates, counterparties named), return [] — do NOT invent fake questions.`;
+
+    const user = buildDeliberateUserPrompt(input);
+
+    const { text } = await this.adapter.chat({
+      model: this.model,
+      max_tokens: 600,
+      system,
+      messages: [{ role: "user", content: user }],
+    });
+
+    if (!text) {
+      throw new Error(`Empty clarify response from ${this.adapter.name}`);
+    }
+    const cleaned = text
+      .replace(/^```json\n/, "")
+      .replace(/^```\n/, "")
+      .replace(/\n```$/, "");
+    const parsed = JSON.parse(cleaned) as {
+      questions: string[];
+      rationale: string;
+    };
+
+    return {
+      questions: Array.isArray(parsed.questions) ? parsed.questions.slice(0, 3) : [],
+      rationale: typeof parsed.rationale === "string" ? parsed.rationale : "",
+      computed_at: new Date().toISOString(),
+    };
   }
 
   async deliberate(input: DeliberateInput): Promise<CouncilResult> {
