@@ -27,6 +27,22 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Verify NPM_TOKEN secret is present
+        run: |
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then
+            echo "::error::NPM_TOKEN GitHub Actions secret is empty or unset."
+            echo "Root cause of 5 consecutive npm publish failures v0.3.0 -> v0.4.2."
+            echo ""
+            echo "How to fix (Alex, ~3 min):"
+            echo "  1. npmjs.com -> Access Tokens -> Generate New Token -> Granular Access Token"
+            echo "  2. Scope: council-diff package (read+write), expiration 1 year"
+            echo "  3. This repo -> Settings -> Secrets and variables -> Actions -> New repository secret"
+            echo "     Name: NPM_TOKEN   Value: <token from step 2>"
+            echo "  4. gh workflow run release.yml -f tag=v0.4.3"
+            exit 1
+          fi
+          echo "NPM_TOKEN secret present (length: $(echo -n '${{ secrets.NPM_TOKEN }}' | wc -c))"
+
       - name: Publish to npm (with provenance)
         run: npm publish --provenance --access public
         env:
