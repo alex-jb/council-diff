@@ -600,6 +600,125 @@ check(
   c5.questions.length === 3,
 );
 
+
+// ═════════════════════════════════════════════════════════════════
+// v0.5-alpha (TREX): execution-before-review contract tests
+// ═════════════════════════════════════════════════════════════════
+console.log("\n--- v0.5-alpha TREX execution ---");
+
+const {
+  MockSandbox,
+  DockerSandbox,
+  buildSandbox,
+  injectExecutionIntoPrompt,
+} = await import("../src/execution.js");
+
+// MockSandbox — clean diff produces all-pass report
+const mockSandbox = new MockSandbox();
+const cleanReport = await mockSandbox.run({
+  diff: "diff --git a/foo.ts b/foo.ts\n+const x = 1;",
+  project_root: "/tmp",
+  test_command: "npm test",
+});
+check("MockSandbox clean diff → ran=true", cleanReport.ran === true);
+check("MockSandbox clean diff → 0 failed tests", cleanReport.test_summary.failed === 0);
+check("MockSandbox clean diff → failed_tests empty", cleanReport.failed_tests.length === 0);
+
+// MockSandbox — FAIL marker produces one failed test
+const failReport = await mockSandbox.run({
+  diff: "diff --git a/bar.ts b/bar.ts\n+// FAIL simulated",
+  project_root: "/tmp",
+  test_command: "npm test",
+});
+check("MockSandbox FAIL marker → 1 failed test", failReport.test_summary.failed === 1);
+check("MockSandbox FAIL marker → failed_tests populated", failReport.failed_tests.length === 1);
+
+// DockerSandbox stub throws NotImplemented (fail-loud, not silent-mock)
+let dockerThrew = false;
+try {
+  await new DockerSandbox().run({
+    diff: "irrelevant",
+    project_root: "/tmp",
+    test_command: "irrelevant",
+  });
+} catch (e: any) {
+  dockerThrew = /stub|NotImplemented|not implemented|v0.5-alpha/i.test(e.message);
+}
+check("DockerSandbox stub throws NotImplemented", dockerThrew);
+
+// buildSandbox factory
+check("buildSandbox('mock') returns MockSandbox", buildSandbox("mock").kind === "mock");
+check("buildSandbox('docker') returns DockerSandbox", buildSandbox("docker").kind === "docker");
+
+// injectExecutionIntoPrompt — null execution → prompt unchanged
+const base = "SYSTEM: review this diff.";
+check(
+  "injectExecutionIntoPrompt(null) leaves prompt unchanged",
+  injectExecutionIntoPrompt(base, null) === base,
+);
+check(
+  "injectExecutionIntoPrompt(undefined) leaves prompt unchanged",
+  injectExecutionIntoPrompt(base, undefined) === base,
+);
+
+// injectExecutionIntoPrompt — clean report appends grounding block
+const withClean = injectExecutionIntoPrompt(base, cleanReport);
+check(
+  "injectExecutionIntoPrompt(clean) appends EXECUTION GROUNDING header",
+  withClean.includes("EXECUTION GROUNDING") && withClean.includes("All tests passed"),
+);
+
+// injectExecutionIntoPrompt — fail report includes failed test names
+const withFail = injectExecutionIntoPrompt(base, failReport);
+check(
+  "injectExecutionIntoPrompt(fail) includes failed test name",
+  withFail.includes("mock_failed_test"),
+);
+check(
+  "injectExecutionIntoPrompt(fail) tells voice not to speculate against report",
+  withFail.includes("Do NOT flag concerns") || withFail.includes("do not flag"),
+);
+
+// injectExecutionIntoPrompt — ran=false triggers fallback warning
+const notRan = {
+  ...cleanReport,
+  ran: false,
+  sandbox_errors: ["docker: daemon not running"],
+};
+const withNotRan = injectExecutionIntoPrompt(base, notRan);
+check(
+  "injectExecutionIntoPrompt(ran=false) warns fallback + surfaces sandbox_errors",
+  withNotRan.includes("attempted but unavailable") && withNotRan.includes("docker: daemon"),
+);
+
+// End-to-end: buildDeliberateUserPrompt with execution appends grounding
+const promptWithExec = buildDeliberateUserPrompt({
+  domain: "engineer",
+  decision: "Merge this?",
+  context: "diff foo",
+  execution: cleanReport,
+});
+check(
+  "buildDeliberateUserPrompt appends grounding when execution provided",
+  promptWithExec.includes("EXECUTION GROUNDING") && promptWithExec.includes("END USER INPUT"),
+);
+check(
+  "buildDeliberateUserPrompt puts grounding AFTER user-input BEGIN/END wrap",
+  promptWithExec.indexOf("END USER INPUT") < promptWithExec.indexOf("EXECUTION GROUNDING"),
+);
+
+// Back-compat: buildDeliberateUserPrompt without execution unchanged
+const promptWithoutExec = buildDeliberateUserPrompt({
+  domain: "engineer",
+  decision: "Merge this?",
+  context: "diff foo",
+});
+check(
+  "buildDeliberateUserPrompt without execution = original v0.4 shape",
+  !promptWithoutExec.includes("EXECUTION GROUNDING"),
+);
+
+
 console.log("\n============================");
 console.log(`Result: ${pass} passed, ${fail} failed\n`);
 process.exit(fail === 0 ? 0 : 1);

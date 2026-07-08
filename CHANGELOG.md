@@ -2,6 +2,21 @@
 
 All notable changes to council-diff. Versioning follows semver.
 
+## [0.5.0-alpha.1] 2026-07-09 — TREX execution-before-review scaffold
+
+Anchors Greptile/TREX GitHub trending 2026-06-17 — AI code reviewers hallucinate less when they see the actual runtime behavior of the diff. council-diff v0.4 did static review only. v0.5-alpha adds an opt-in execution boundary so every voice sees the same ground truth.
+
+- `src/execution.ts` — new module. `ExecutionReport` type, `Sandbox` interface, `MockSandbox` (deterministic, for tests), `DockerSandbox` (stub — real backend in v0.5-alpha.2), `buildSandbox()` factory, `injectExecutionIntoPrompt()` helper.
+- `src/index.ts` — `DeliberateInput` gains optional `execution?: ExecutionReport`. When provided, `buildDeliberateUserPrompt` appends a canonical grounding block after the user-input BEGIN/END delimiters. Voices are told to (a) treat the report as ground truth and (b) refuse to flag concerns that contradict the report.
+- 19 new contract tests: MockSandbox clean + FAIL-marker paths, DockerSandbox stub fail-loud, buildSandbox factory, injectExecutionIntoPrompt (null / clean / fail / ran=false / fallback), end-to-end buildDeliberateUserPrompt with vs without execution, back-compat verified.
+- `docs/v0.5-trex-execution-spec.md` (pre-existing) — security model, non-goals, rollout plan.
+
+**Back-compat**: 100%. Callers who do not set `execution` see the identical v0.4 behavior.
+
+**Next**: v0.5-alpha.2 will wire real Docker sandbox (spec section "Sandbox options" #1). v0.5-alpha DockerSandbox intentionally throws NotImplemented so callers do not silently fall back to the mock (which has no security guarantees).
+
+Test surface: 65 → 84 (+19). Full suite green.
+
 ## [Unreleased]
 
 ### Added (issue #1 — llm_adapter abstraction)
